@@ -2,6 +2,8 @@
 
 **English** · [简体中文](README.zh-CN.md)
 
+**🔗 Live demo: https://lionzlh.github.io/popoutx/**
+
 Turn a photo into an X (Twitter) multi-image post where **the subject breaks out of the frame**: the photo is cut into up to 20 slices, AI cuts out the subject, and the subject sits in front of the gaps, as if stepping out of the picture. Everything runs in your browser — **your photos are never uploaded**.
 
 ![demo](demo-en.gif)
@@ -37,7 +39,7 @@ The app is 100% static (no backend), so it can be hosted on GitHub Pages for fre
 
 1. Push this folder as its own repository (the repo root must contain `index.html`).
 2. On GitHub: **Settings → Pages → Build and deployment → Source: “Deploy from a branch” → Branch: `main` / `/ (root)` → Save**.
-3. After a minute the app is live at `https://<your-username>.github.io/<repo-name>/`. Put that link at the top of this README.
+3. After a minute the app is live at `https://<your-username>.github.io/<repo-name>/` (this project: https://lionzlh.github.io/popoutx/).
 
 Everything still runs in the visitor's browser: photos are never uploaded, and `scripts/serve.py` is only needed for local use. The first cutout downloads about 15 MB (runtime + model), which the browser caches.
 

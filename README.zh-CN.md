@@ -2,6 +2,8 @@
 
 [English](README.md) · **简体中文**
 
+**🔗 在线体验：https://lionzlh.github.io/popoutx/**
+
 把一张照片做成 X (Twitter) 多图帖里「主体破框」的效果：整图切成最多 20 份，AI 抠出主体，主体盖在分隔线前面，看起来像从画框里走出来。全部在你的浏览器里完成，**照片不会上传到任何服务器**。
 
 ![demo](demo-zh.gif)
@@ -37,7 +39,7 @@ python3 scripts/serve.py        # 然后打开 http://127.0.0.1:47831/
 
 1. 把这个文件夹作为一个独立仓库推送（仓库根目录要有 `index.html`）。
 2. 在 GitHub 里：**Settings → Pages → Build and deployment → Source 选 “Deploy from a branch” → Branch 选 `main` / `/ (root)` → Save**。
-3. 等一分钟，访问 `https://<你的用户名>.github.io/<仓库名>/` 就能用了。把这个链接放到 README 最上面。
+3. 等一分钟，访问 `https://<你的用户名>.github.io/<仓库名>/` 就能用了（本项目：https://lionzlh.github.io/popoutx/）。
 
 所有处理仍然在访问者自己的浏览器里完成，照片不会上传；`scripts/serve.py` 只用于本地运行。第一次抠图会下载约 15MB（运行库 + 模型），浏览器会缓存。
 
