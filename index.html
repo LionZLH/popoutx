@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PopoutX | 主体跳出画框</title>
+<link rel="stylesheet" href="src/styles.css">
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></symbol>
+    <symbol id="i-redo" viewBox="0 0 24 24"><path d="m15 14 5-5-5-5"/><path d="M20 9H10a6 6 0 0 0 0 12h3"/></symbol>
+    <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="2"/><path d="m21 15-4.5-4.5L6 21"/></symbol>
+    <symbol id="i-wand" viewBox="0 0 24 24"><path d="m15 4 1 2 2 1-2 1-1 2-1-2-2-1 2-1z"/><path d="m3 21 12-12"/><path d="M19 13l.7 1.3L21 15l-1.3.7L19 17l-.7-1.3L17 15l1.3-.7z"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 20h16"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-eraser" viewBox="0 0 24 24"><path d="m7 21-4-4a2 2 0 0 1 0-3L14 3a2 2 0 0 1 3 0l4 4a2 2 0 0 1 0 3L11 21"/><path d="M7 21h13"/><path d="m8 8 8 8"/></symbol>
+    <symbol id="i-brush" viewBox="0 0 24 24"><path d="m14 4 6 6-9 9H5v-6z"/><path d="m12 6 6 6"/></symbol>
+    <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.6 2.2c-.7.4-1.1.9-1.1 1.8"/><path d="M12 17h.01"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+    <symbol id="i-reset" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16"/><path d="M10 11v6M14 11v6"/><path d="M6 7l1 13h10l1-13"/><path d="M9 7V4h6v3"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 5 5L20 7"/></symbol>
+    <symbol id="i-sample" viewBox="0 0 24 24"><path d="M12 3 4 7v6c0 4 3.5 7 8 8 4.5-1 8-4 8-8V7z"/><path d="m9 12 2 2 4-4"/></symbol>
+  </defs>
+</svg>
+
+<!-- Header -->
+<header>
+  <div class="brand">
+    <svg class="brand-icon" viewBox="0 0 32 32" aria-hidden="true">
+      <rect x="2" y="3" width="6" height="26" rx="3" fill="currentColor" opacity=".35"/>
+      <rect x="10" y="3" width="6" height="26" rx="3" fill="currentColor" opacity=".6"/>
+      <rect x="18" y="3" width="6" height="26" rx="3" fill="currentColor"/>
+      <circle cx="26" cy="9" r="4.5" fill="#edf1f5"/>
+    </svg>
+    <div>
+      <div class="brand-title">PopoutX</div>
+      <div class="brand-sub" data-i18n="brandSub">让主体跳出 X 多图画框</div>
+    </div>
+  </div>
+
+
+  <div class="header-right">
+    <div class="status-pill" id="statusPill" role="status">
+      <div class="status-dot" id="statusDot"></div>
+      <span id="statusText">请载入图片开始制作</span>
+    </div>
+    <input type="file" id="fileInput" accept="image/*" hidden>
+    <button type="button" id="btnSampleTop" class="sample-top" data-i18n-title="sampleTip" title="加载示例图"><svg class="icon"><use href="#i-sample"/></svg><span id="sampleTopLabel" data-i18n="sampleShort">示例</span></button>
+    <button type="button" id="btnHelp" class="icon-btn" data-i18n-title="helpTip" title="使用说明" aria-label="使用说明" aria-haspopup="dialog"><svg class="icon"><use href="#i-help"/></svg></button>
+    <button type="button" id="btnLang" class="icon-btn lang-btn" data-i18n="langBtn" data-i18n-title="langTip" title="切换语言" aria-label="切换语言">EN</button>
+    <a id="btnGithub" class="btn icon-btn" href="#" data-i18n-title="githubTip" title="GitHub" aria-label="GitHub" rel="noopener noreferrer"><svg class="icon gh" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" stroke="none" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+  </div>
+</header>
+
+<!-- Main Workspace -->
+<div class="workspace">
+  <div class="stage-pane">
+    <div class="floating-bar">
+      <div class="canvas-tools">
+        <div class="history-btn-group">
+      <button type="button" id="btnUndo" disabled data-i18n-title="undo" title="撤销" aria-label="撤销"><svg class="icon"><use href="#i-undo"/></svg></button>
+      <button type="button" id="btnRedo" disabled data-i18n-title="redo" title="重做" aria-label="重做"><svg class="icon"><use href="#i-redo"/></svg></button>
+    </div>
+        <span class="tools-sep"></span>
+        <button type="button" id="btnReset" data-i18n-title="resetTip" title="恢复初始状态（可撤销）" disabled><svg class="icon"><use href="#i-reset"/></svg><span data-i18n="reset">重置</span></button>
+      </div>
+      <button type="button" id="toggleMaskOverlay" class="btn" aria-pressed="false">
+        <svg class="icon"><use href="#i-eye"/></svg><span data-i18n="mask">蒙版</span>
+      </button>
+      <span class="peek-hint" id="peekHint" hidden><kbd>Space</kbd><span data-i18n="peek">按住对比效果</span></span>
+    </div>
+
+    <div class="tour-spot" id="tourSpot" hidden aria-hidden="true"></div>
+    <div class="tour-card" id="tourCard" hidden role="dialog" aria-live="polite">
+      <div class="tour-arrow" id="tourArrow"></div>
+      <div class="tour-meta"><span id="tourStep"></span></div>
+      <div class="tour-title" id="tourTitle"></div>
+      <div class="tour-text" id="tourText"></div>
+      <div class="tour-actions"><button type="button" class="tour-skip" id="tourSkip" data-i18n="tourSkip">跳过教程</button><button type="button" class="primary" id="tourDoneBtn" hidden data-i18n="tourDone">完成</button></div>
+    </div>
+
+    <div class="canvas-scroller" id="canvasScroller">
+      <div class="tweet-card theme-dark" id="tweetCard">
+        <div class="post">
+          <a class="post-avatar" href="https://x.com/Evan_zlh" target="_blank" rel="noopener noreferrer" aria-label="@Evan_zlh"><img src="assets/avatar.png" alt="" draggable="false"></a>
+          <div class="post-main">
+            <div class="post-head">
+              <a class="post-name" href="https://x.com/Evan_zlh" target="_blank" rel="noopener noreferrer"><span>Evan（互+）</span><svg class="verified" viewBox="0 0 24 24" role="img" data-i18n-aria="verified" aria-label="Verified"><path fill="#1d9bf0" d="M22.25 12c0-1.43-.88-2.67-2.19-3.34.46-1.39.2-2.9-.81-3.91s-2.52-1.27-3.91-.81c-.66-1.31-1.91-2.19-3.34-2.19s-2.67.88-3.33 2.19c-1.4-.46-2.91-.2-3.92.81s-1.26 2.52-.8 3.91c-1.31.67-2.2 1.91-2.2 3.34s.89 2.67 2.2 3.34c-.46 1.39-.21 2.9.8 3.91s2.52 1.26 3.91.81c.67 1.31 1.91 2.19 3.34 2.19s2.68-.88 3.34-2.19c1.39.45 2.9.2 3.91-.81s1.27-2.52.81-3.91c1.31-.67 2.19-1.91 2.19-3.34zm-11.71 4.2L6.8 12.46l1.41-1.42 2.26 2.26 4.8-5.23 1.47 1.36-6.2 6.77z"/></svg></a>
+              <a class="post-handle" href="https://x.com/Evan_zlh" target="_blank" rel="noopener noreferrer">@Evan_zlh</a>
+              <span class="post-time">· <span data-i18n="postTime">1小时</span></span>
+            </div>
+            <div class="post-text" data-i18n="postText">功能测试，这个效果如何？</div>
+        <div class="tweet-media-wrap" id="mediaWrap">
+          <div id="emptyDropzone">
+            <svg class="empty-art" viewBox="0 0 84 56" aria-hidden="true">
+              <rect x="1" y="1" width="14" height="54" rx="7" fill="currentColor" opacity=".22"/>
+              <rect x="19" y="1" width="14" height="54" rx="7" fill="currentColor" opacity=".38"/>
+              <rect x="37" y="1" width="14" height="54" rx="7" fill="currentColor" opacity=".6"/>
+              <rect x="55" y="1" width="14" height="54" rx="7" fill="currentColor"/>
+              <circle cx="73" cy="12" r="9" fill="#edf1f5"/>
+            </svg>
+            <div class="empty-title" data-i18n="emptyTitle">把照片拖到这里</div>
+            <div class="empty-hint" data-i18n="emptyHint">做出主体跳出画框的 X 多图帖</div>
+            <div class="empty-actions">
+              <button type="button" class="primary" id="btnPickImage"><svg class="icon"><use href="#i-image"/></svg><span data-i18n="pick">选择照片</span></button>
+              <button type="button" class="ghost" id="btnResume" hidden><svg class="icon"><use href="#i-reset"/></svg><span data-i18n="resume">继续上次作品</span></button>
+              <button type="button" class="ghost" id="btnSample"><svg class="icon"><use href="#i-sample"/></svg><span data-i18n="sample">试试示例图</span></button>
+            </div>
+            <div class="empty-paste" data-i18n="pasteHint">或直接按 ⌘V 粘贴图片</div>
+          </div>
+          <canvas id="mainCanvas" hidden></canvas>
+        </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="slices-strip">
+      <div class="slices-label" data-i18n="strip">图片</div>
+      <div class="slices-container" id="slicesContainer"></div>
+    </div>
+  </div>
+
+  <aside class="inspector-pane">
+    <div class="panel-section" data-step="open">
+      <div class="section-title"><span><b class="step-badge">1</b><span data-i18n="stepOpen">选照片</span></span></div>
+      <div class="photo-row" id="photoRow" hidden>
+        <canvas id="photoThumb" width="112" height="112"></canvas>
+        <div class="photo-meta"><div class="photo-name" id="photoName"></div><div class="photo-dims" id="photoDims"></div></div>
+        <button type="button" class="icon-btn photo-remove" id="btnRemovePhoto" data-i18n-title="removePhoto" title="移除照片" aria-label="移除照片"><svg class="icon"><use href="#i-trash"/></svg></button>
+      </div>
+      <button type="button" class="wide-btn" id="btnUpload"><svg class="icon"><use href="#i-image"/></svg><span id="uploadLabel" data-i18n="pick">选择照片</span></button>
+      <button type="button" class="wide-btn ghost-btn" id="btnSample2"><svg class="icon"><use href="#i-sample"/></svg><span data-i18n="sample">试试示例图</span></button>
+    </div>
+
+    <div class="panel-section" data-step="cutout">
+      <div class="section-title"><span><b class="step-badge">2</b><span data-i18n="stepCut">抠出主体</span></span></div>
+      <button type="button" class="ai-wide" id="btnAiHeader"><svg class="icon"><use href="#i-wand"/></svg><span data-i18n="cutBtn">抠出主体</span></button>
+      <div class="tools-grid">
+        <button type="button" class="tool-btn" id="toolLineErase" data-tool="erase" data-i18n-title="eraseTip" title="擦掉多抠进主体的部分"><svg class="icon"><use href="#i-eraser"/></svg><span data-i18n="erase">擦除</span></button>
+        <button type="button" class="tool-btn" id="toolLineRestore" data-tool="paint" data-i18n-title="restoreTip" title="补回被漏掉的主体"><svg class="icon"><use href="#i-brush"/></svg><span data-i18n="restore">恢复</span></button>
+      </div>
+      <div id="brushOptions">
+        <div class="control-row">
+          <span class="control-label" data-i18n="brush">笔刷</span>
+          <input type="range" id="brushSize" min="5" max="150" value="45" data-i18n-title="brush" aria-label="笔刷">
+          <span class="control-val" id="brushSizeVal">45px</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel-section" data-step="slots">
+      <div class="section-title">
+        <span><b class="step-badge">3</b><span data-i18n="stepFx">调效果</span></span>
+        <span class="control-label" id="themeModeBadge" hidden></span>
+      </div>
+      <div class="subhead" data-i18n="bg">底色</div>
+      <div class="seg-group" id="slotThemeSegGroup">
+        <button type="button" class="seg-item active" data-slot-theme="black" aria-pressed="true">
+          <span class="swatch black"></span><span data-i18n="black">黑</span>
+        </button>
+        <button type="button" class="seg-item" data-slot-theme="white" aria-pressed="false">
+          <span class="swatch white"></span><span data-i18n="white">白</span>
+        </button>
+      </div>
+      <div class="count-row">
+        <span class="control-label" data-i18n="slices">份数</span>
+        <div class="stepper">
+          <button type="button" class="step-btn" id="slotsMinus" aria-label="-1">−</button>
+          <span class="count-big"><span id="slotsCountVal">10 份</span></span>
+          <button type="button" class="step-btn" id="slotsPlus" aria-label="+1">+</button>
+        </div>
+      </div>
+      <input type="range" id="slotsCount" min="1" max="20" value="10" data-i18n-title="slices" aria-label="份数" style="width:100%;">
+    </div>
+
+    <div class="panel-section" data-step="export">
+      <div class="section-title"><span><b class="step-badge">4</b><span data-i18n="stepExport">导出</span></span></div>
+      <button type="button" class="primary wide-btn" id="btnDownload" disabled><svg class="icon"><use href="#i-download"/></svg><span data-i18n="download">下载</span></button>
+    </div>
+  </aside>
+</div>
+
+<div class="modal-overlay help-overlay" id="helpModal" hidden>
+  <div class="help-card" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+    <div class="help-head">
+      <h2 id="helpTitle" data-i18n="helpTitle">使用说明</h2>
+      <button type="button" class="icon-btn" id="btnHelpClose" data-i18n-title="close" aria-label="关闭"><svg class="icon"><use href="#i-close"/></svg></button>
+    </div>
+    <ol class="help-steps" data-i18n-html="helpBody">
+      <li><b>选照片</b>拖进来，点「选择照片」，或直接 ${PASTE_KEY} 粘贴。</li>
+      <li><b>抠出主体</b>点「抠出主体」，AI 会自动抠出画面主体。不准的地方用笔刷修：<em>擦除</em>去掉多抠的部分，<em>恢复</em>补回漏掉的部分（修的时候会自动显示抠图范围）。被主体盖住的分隔线会让相邻的图连成一张主图；把主体从某条线上擦掉，这条线完整了，图片就会分开。再点一次工具即可退出。</li>
+      <li><b>调效果</b><em>底色</em>要和你 X 的显示模式一致：深色模式选黑，浅色模式选白。<em>份数</em>是把照片切成几份，最多 20。</li>
+      <li><b>下载</b>点「下载」，选一个位置，会新建一个文件夹，里面是按顺序编号的图片（01、02……），照编号顺序发到 X 即可。不支持写文件夹的浏览器会逐张下载。</li>
+    </ol>
+    <div class="help-tips">
+      <div><span data-i18n="helpUndo">撤销 / 重做：</span><kbd>⌘</kbd> <kbd>Z</kbd> / <kbd>⇧</kbd> <kbd>⌘</kbd> <kbd>Z</kbd></div>
+      <div class="help-keys"><span data-i18n="keysTitle">快捷键：</span><kbd>E</kbd> <span data-i18n="erase">擦除</span> · <kbd>R</kbd> <span data-i18n="restore">恢复</span> · <kbd>[</kbd> <kbd>]</kbd> <span data-i18n="brush">笔刷</span> · <kbd>Space</kbd> <span data-i18n="peek">按住对比效果</span> · <kbd>Esc</kbd> · <kbd>⌘</kbd><kbd>S</kbd> <span data-i18n="download">下载</span></div>
+      <div data-i18n="helpLocal">图片只在本机处理，不会上传。</div>
+    </div>
+  </div>
+</div>
+
+<div id="toast" role="alert"></div>
+
+<!-- Brush Indicator -->
+<div id="brushIndicator"></div>
+
+<!-- Loading Modal -->
+<div class="modal-overlay" id="loadingModal" hidden>
+  <div class="modal-card">
+    <div class="spinner"></div>
+    <div class="modal-title" id="modalTitle"></div>
+    <div class="modal-desc" id="modalDesc"></div>
+    <div class="progress-bar-wrap">
+      <div class="progress-bar-fill" id="progressBar"></div>
+    </div>
+  </div>
+</div>
+
+<script src="src/config.js"></script>
+<script src="src/i18n.js"></script>
+<script src="src/app.js"></script>
+</body>
+</html>
