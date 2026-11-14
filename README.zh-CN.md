@@ -48,7 +48,7 @@ python3 scripts/serve.py        # 然后打开 http://127.0.0.1:47831/
 2. 在 GitHub 里：**Settings → Pages → Build and deployment → Source 选 “Deploy from a branch” → Branch 选 `main` / `/ (root)` → Save**。
 3. 等一分钟，访问 `https://<你的用户名>.github.io/<仓库名>/` 就能用了。
 
-所有处理仍然在访问者自己的浏览器里完成，照片不会上传；`scripts/serve.py` 只用于本地运行。第一次抠图会下载约 15MB（运行库 + 模型），浏览器会缓存。
+所有处理仍然在访问者自己的浏览器里完成，照片不会上传；`scripts/serve.py` 只用于本地运行。第一次抠图实际会下载约 8MB（ONNX 运行库压缩后约 3MB + 模型约 4MB），之后浏览器会缓存。
 
 ## 自定义
 

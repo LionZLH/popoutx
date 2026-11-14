@@ -48,7 +48,7 @@ The app is 100% static (no backend), so you can host your own copy on GitHub Pag
 2. On GitHub: **Settings → Pages → Build and deployment → Source: “Deploy from a branch” → Branch: `main` / `/ (root)` → Save**.
 3. After a minute the app is live at `https://<your-username>.github.io/<repo-name>/`.
 
-Everything still runs in the visitor's browser: photos are never uploaded, and `scripts/serve.py` is only needed for local use. The first cutout downloads about 15 MB (runtime + model), which the browser caches.
+Everything still runs in the visitor's browser: photos are never uploaded, and `scripts/serve.py` is only needed for local use. The first cutout downloads about 8 MB over the wire (the ONNX runtime ≈ 3 MB gzipped + the model ≈ 4 MB); the browser caches it afterwards.
 
 ## Customise
 
