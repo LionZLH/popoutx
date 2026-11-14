@@ -56,6 +56,8 @@ Everything still runs in the visitor's browser: photos are never uploaded, and `
 - **GitHub button**: set `GITHUB_URL` in `src/config.js`.
 - **Sample photo**: replace `assets/sample.jpg`. Strong contrast and a simple silhouette cut out best.
 
+> After editing files in `src/`, run `python3 scripts/stamp.py` before committing — it adds a content fingerprint to the script/stylesheet URLs so browsers never mix a new page with a cached old script.
+
 ## Command line
 
 `scripts/slice.py` is a standalone, offline command-line version (`pip install numpy pillow`). It has no AI cutout — bring your own mask (white subject on black):

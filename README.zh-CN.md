@@ -56,6 +56,8 @@ python3 scripts/serve.py        # 然后打开 http://127.0.0.1:47831/
 - **GitHub 按钮**：把 `src/config.js` 里的 `GITHUB_URL` 填成你的仓库地址。
 - **示例图**：替换 `assets/sample.jpg`。主体和背景对比越强、轮廓越简单，抠得越好。
 
+> 修改 `src/` 里的文件之后、提交之前，运行一次 `python3 scripts/stamp.py`：它会给脚本和样式的地址加上内容指纹，避免浏览器把新页面配上缓存的旧脚本。
+
 ## 命令行
 
 `scripts/slice.py` 是独立、离线的命令行版本（需要 `pip install numpy pillow`）。它没有 AI 抠图，需要自备蒙版（白色主体、黑色背景）：
