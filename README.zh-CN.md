@@ -2,13 +2,15 @@
 
 [English](README.md) · **简体中文**
 
-**🔗 在线体验：https://lionzlh.github.io/popoutx/**
+**▶ 试用地址（无需安装）：[https://lionzlh.github.io/popoutx/](https://lionzlh.github.io/popoutx/)**
 
 把一张照片做成 X (Twitter) 多图帖里「主体破框」的效果：整图切成最多 20 份，AI 抠出主体，主体盖在分隔线前面，看起来像从画框里走出来。全部在你的浏览器里完成，**照片不会上传到任何服务器**。
 
 ![demo](demo-zh.gif)
 
 ## 快速开始
+
+**只想试一下？** 直接打开 **[lionzlh.github.io/popoutx](https://lionzlh.github.io/popoutx/)** —— 不用安装，照片只在你的浏览器里处理。想在自己电脑上运行：
 
 ```bash
 python3 scripts/serve.py        # 然后打开 http://127.0.0.1:47831/

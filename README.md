@@ -2,13 +2,15 @@
 
 **English** · [简体中文](README.zh-CN.md)
 
-**🔗 Live demo: https://lionzlh.github.io/popoutx/**
+**▶ Try it now (no install): [https://lionzlh.github.io/popoutx/](https://lionzlh.github.io/popoutx/)**
 
 Turn a photo into an X (Twitter) multi-image post where **the subject breaks out of the frame**: the photo is cut into up to 20 slices, AI cuts out the subject, and the subject sits in front of the gaps, as if stepping out of the picture. Everything runs in your browser — **your photos are never uploaded**.
 
 ![demo](demo-en.gif)
 
 ## Quick start
+
+**Just want to try it?** Open **[lionzlh.github.io/popoutx](https://lionzlh.github.io/popoutx/)** — nothing to install, and your photos stay in your browser. To run it on your own machine instead:
 
 ```bash
 python3 scripts/serve.py        # then open http://127.0.0.1:47831/
