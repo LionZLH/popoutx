@@ -15,7 +15,7 @@ PopoutX 可以把一张照片切成最多 20 张按顺序编号的图，用来�
 
 ## 快速开始
 
-**只想试一下？** 直接打开 **[lionzlh.github.io/popoutx](https://lionzlh.github.io/popoutx/)** —— 不用安装，照片只在你的浏览器里处理。想在自己电脑上运行：
+在自己电脑上运行：
 
 ```bash
 python3 scripts/serve.py        # 然后打开 http://127.0.0.1:47831/
@@ -40,13 +40,13 @@ python3 scripts/serve.py        # 然后打开 http://127.0.0.1:47831/
 
 > 为什么只有黑 / 白底色：X 会把带透明度的 PNG 压平成黑底或白底，透明通道无法保留，所以分隔线必须是实心的黑或白。
 
-## 在线运行（GitHub Pages）
+## 部署你自己的副本（GitHub Pages）
 
-这个应用完全是静态的（没有后端），可以免费托管到 GitHub Pages：
+这个应用完全是静态的（没有后端），你可以免费把自己的副本托管到 GitHub Pages：
 
 1. 把这个文件夹作为一个独立仓库推送（仓库根目录要有 `index.html`）。
 2. 在 GitHub 里：**Settings → Pages → Build and deployment → Source 选 “Deploy from a branch” → Branch 选 `main` / `/ (root)` → Save**。
-3. 等一分钟，访问 `https://<你的用户名>.github.io/<仓库名>/` 就能用了（本项目：https://lionzlh.github.io/popoutx/）。
+3. 等一分钟，访问 `https://<你的用户名>.github.io/<仓库名>/` 就能用了。
 
 所有处理仍然在访问者自己的浏览器里完成，照片不会上传；`scripts/serve.py` 只用于本地运行。第一次抠图会下载约 15MB（运行库 + 模型），浏览器会缓存。
 

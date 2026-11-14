@@ -15,7 +15,7 @@ PopoutX cuts a photo into up to 20 numbered images for an X (Twitter) multi-imag
 
 ## Quick start
 
-**Just want to try it?** Open **[lionzlh.github.io/popoutx](https://lionzlh.github.io/popoutx/)** — nothing to install, and your photos stay in your browser. To run it on your own machine instead:
+Run it on your own machine:
 
 ```bash
 python3 scripts/serve.py        # then open http://127.0.0.1:47831/
@@ -40,13 +40,13 @@ Shortcuts: `E` erase · `R` restore · `[` `]` brush size · hold `Space` to com
 
 > Why only Black / White: X flattens PNG transparency to a black or white background, so the gaps have to be solid colours.
 
-## Run it online (GitHub Pages)
+## Host your own copy (GitHub Pages)
 
-The app is 100% static (no backend), so it can be hosted on GitHub Pages for free:
+The app is 100% static (no backend), so you can host your own copy on GitHub Pages for free:
 
 1. Push this folder as its own repository (the repo root must contain `index.html`).
 2. On GitHub: **Settings → Pages → Build and deployment → Source: “Deploy from a branch” → Branch: `main` / `/ (root)` → Save**.
-3. After a minute the app is live at `https://<your-username>.github.io/<repo-name>/` (this project: https://lionzlh.github.io/popoutx/).
+3. After a minute the app is live at `https://<your-username>.github.io/<repo-name>/`.
 
 Everything still runs in the visitor's browser: photos are never uploaded, and `scripts/serve.py` is only needed for local use. The first cutout downloads about 15 MB (runtime + model), which the browser caches.
 
