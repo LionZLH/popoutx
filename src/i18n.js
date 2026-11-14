@@ -23,7 +23,7 @@ const I18N = {
     download: "下载",
     undo: "撤销", redo: "重做", helpTitle: "使用说明", close: "关闭",
     helpBody: `<li><b>选照片</b>拖进来，或点「选择照片」。</li>
-      <li><b>抠出主体</b>点「抠出主体」，AI 会自动抠出画面主体。不准的地方用笔刷修：<em>擦除</em>让涂到的分隔线消失，<em>恢复</em>把线画回来（包括被主体盖住的部分）。再点一次工具即可退出。</li>
+      <li><b>抠出主体</b>（可选：只想切图可以跳过这一步）点「抠出主体」，AI 会自动抠出画面主体。不准的地方用笔刷修：<em>擦除</em>让涂到的分隔线消失，<em>恢复</em>把线画回来（包括被主体盖住的部分）。再点一次工具即可退出。</li>
       <li><b>调效果</b><em>底色</em>要和你 X 的显示模式一致：深色模式选黑，浅色模式选白。<em>份数</em>是把照片切成几份，最多 20。</li>
       <li><b>下载</b>点「打包下载」得到一个 ZIP（解压后是按顺序编号的图片 01、02……），或点「逐张下载」直接保存每张图。照编号顺序发到 X 即可。</li>`,
     helpUndo: "撤销 / 重做：", helpLocal: "图片只在本机处理，不会上传。",
@@ -62,7 +62,7 @@ const I18N = {
     download: "Download",
     undo: "Undo", redo: "Redo", helpTitle: "Help", close: "Close",
     helpBody: `<li><b>Choose a photo</b>Drag one in, click “Choose photo”, or just press ${PASTE_KEY} to paste.</li>
-      <li><b>Cut out the subject</b>Click “Cut out subject” and AI finds the main subject. Fix misses with the brush: <em>Erase</em> removes parts wrongly included, <em>Restore</em> adds back parts that were missed (the cutout area shows while you edit). A gap line hidden behind the subject joins the images beside it into one main image; erase the subject off a line and, once the line is whole, the images split. Click the tool again to exit.</li>
+      <li><b>Cut out the subject</b>(Optional — skip it if you only want to slice.) Click “Cut out subject” and AI finds the main subject. Fix misses with the brush: <em>Erase</em> removes parts wrongly included, <em>Restore</em> adds back parts that were missed (the cutout area shows while you edit). A gap line hidden behind the subject joins the images beside it into one main image; erase the subject off a line and, once the line is whole, the images split. Click the tool again to exit.</li>
       <li><b>Style it</b><em>Background</em> should match how X looks for you: Black for dark mode, White for light mode. <em>Slices</em> is how many parts the photo is cut into, up to 20.</li>
       <li><b>Download</b>Click “Download ZIP” for one archive (numbered images 01, 02, … inside), or “One by one” to save each image. Post them to X in that order.</li>`,
     helpUndo: "Undo / Redo: ", helpLocal: "Photos are processed on your device and never uploaded.",

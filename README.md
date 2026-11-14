@@ -4,7 +4,12 @@
 
 **▶ Try it now (no install): [https://lionzlh.github.io/popoutx/](https://lionzlh.github.io/popoutx/)**
 
-Turn a photo into an X (Twitter) multi-image post where **the subject breaks out of the frame**: the photo is cut into up to 20 slices, AI cuts out the subject, and the subject sits in front of the gaps, as if stepping out of the picture. Everything runs in your browser — **your photos are never uploaded**.
+PopoutX cuts a photo into up to 20 numbered images for an X (Twitter) multi-image post — and, if you want, adds a **pseudo-3D “subject breaks out of the frame” effect**. Everything runs in your browser; **your photos are never uploaded**.
+
+**Two ways to use it**
+
+- **Just slice** — skip the cutout. Choose how many slices (1–20) and download clean, numbered images at original resolution, perfect for a tidy multi-image post.
+- **Pseudo-3D pop-out** — cut out the subject and it sits in front of the gaps between the images, as if stepping out of the picture.
 
 ![demo](demo-en.gif)
 
@@ -19,7 +24,7 @@ python3 scripts/serve.py        # then open http://127.0.0.1:47831/
 Only Python 3 (standard library) is needed. No dependencies and no internet: the cutout model and its runtime are in the repo.
 
 1. **Photo** — drag one in, choose a file, paste with `⌘V` / `Ctrl+V`, or click **Sample** (top right) for a guided tutorial.
-2. **Cut out** — click “Cut out subject”. Fix misses with **Erase** (remove parts wrongly included) and **Restore** (add back what was missed).
+2. **Cut out** *(optional — skip it if you only want to slice)* — click “Cut out subject”. Fix misses with **Erase** (remove parts wrongly included) and **Restore** (add back what was missed).
 3. **Style** — pick the background (Black / White, matching how X looks for you) and the number of slices.
 4. **Download** — “Download ZIP” gives one archive with numbered images inside (`01.png`, `02.png`, …); “One by one” saves each image separately. Post them to X in that order.
 
