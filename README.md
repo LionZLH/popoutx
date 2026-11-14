@@ -19,7 +19,7 @@ Only Python 3 (standard library) is needed. No dependencies and no internet: the
 1. **Photo** — drag one in, choose a file, paste with `⌘V` / `Ctrl+V`, or click **Sample** (top right) for a guided tutorial.
 2. **Cut out** — click “Cut out subject”. Fix misses with **Erase** (remove parts wrongly included) and **Restore** (add back what was missed).
 3. **Style** — pick the background (Black / White, matching how X looks for you) and the number of slices.
-4. **Download** — pick a location; a new folder is created with numbered images (`01.png`, `02.png`, …). Post them to X in that order.
+4. **Download** — “Download ZIP” gives one archive with numbered images inside (`01.png`, `02.png`, …); “One by one” saves each image separately. Post them to X in that order.
 
 Shortcuts: `E` erase · `R` restore · `[` `]` brush size · hold `Space` to compare · `Esc` exit tool · `⌘S` download · `⌘Z` / `⇧⌘Z` undo / redo.
 
@@ -27,7 +27,7 @@ Shortcuts: `E` erase · `R` restore · `[` `]` brush size · hold `Space` to com
 
 - The photo is split evenly into N slices. A gap line counts as a cut only if it is **complete** (not erased and not hidden behind the subject). Lines hidden behind the subject join the neighbouring slices into one **main image**, where the gaps are drawn as slots with the subject in front. The other images are plain slices at original resolution.
 - Cutout: U²-Net-P runs in the browser (ONNX Runtime Web, WASM) on the photo and its mirror image, then the edges are refined with a guided filter using the photo's own colours.
-- Export: Chrome / Edge write straight into a new folder; other browsers (Safari, Firefox) download the images one by one.
+- Export: a store-only ZIP or one-by-one downloads. Both work in every browser and need no folder permission (Chrome refuses to let a site write into Desktop / Documents / Downloads directly, which is why there is no “save to folder” button).
 - Autosave: your work is stored locally in the browser (IndexedDB); use “Resume last project” next time.
 - UI languages: English / 中文 (toggle at the top right; English is the default).
 

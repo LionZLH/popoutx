@@ -13,8 +13,8 @@ const I18N = {
       { title: "抠出主体", text: "点击高亮的「抠出主体」，AI 会自动找出照片里的主体。" },
       { title: "调整份数", text: "点击 + 或 −，把照片切成更多或更少的图。主体始终盖在分隔线前面。" },
       { title: "选择底色", text: "点击「白」，看看白色底色的效果。要和你 X 的显示模式一致。" },
-      { title: "下载", text: "满意后点击「下载」，选一个位置，会得到按顺序编号的图片（01、02……），照编号顺序发到 X。" },
-    ], verified: "已认证", sampleShort: "示例", sampleTip: "加载示例图", sampleConfirm: "再点一次，替换当前照片", savedFolder: (n, d) => `已把 ${n} 张图按顺序保存到文件夹「${d}」`, savedDownloads: (n) => `已按顺序下载 ${n} 张图（01、02……）`, removePhoto: "移除照片", removed: "已移除照片，可点「继续上次作品」找回", postTime: "1小时", postText: "功能测试，这个效果如何？", peek: "按住对比效果", keysTitle: "快捷键：", resume: "继续上次作品", resumed: "已恢复上次的作品", mask: "蒙版", reset: "重置", resetTip: "恢复到初始状态（可撤销）", resetDone: "已重置，可点撤销找回",
+      { title: "打包下载", text: "满意后点击「打包下载」，得到一个 ZIP，解压后是按顺序编号的图片（01、02……），照编号顺序发到 X。" },
+    ], verified: "已认证", sampleShort: "示例", sampleTip: "加载示例图", sampleConfirm: "再点一次，替换当前照片", downloadFiles: "逐张下载", downloadZip: "打包下载", savedZip: (n, f) => `已打包 ${n} 张图：${f}`, savedDownloads: (n) => `已按顺序下载 ${n} 张图（01、02……）`, removePhoto: "移除照片", removed: "已移除照片，可点「继续上次作品」找回", postTime: "1小时", postText: "功能测试，这个效果如何？", peek: "按住对比效果", keysTitle: "快捷键：", resume: "继续上次作品", resumed: "已恢复上次的作品", mask: "蒙版", reset: "重置", resetTip: "恢复到初始状态（可撤销）", resetDone: "已重置，可点撤销找回",
     emptyTitle: "把照片拖到这里", emptyHint: "做出主体跳出画框的 X 多图帖", pick: "选择照片", sample: "试试示例图", pasteHint: `或直接按 ${PASTE_KEY} 粘贴图片`, pasted: "已粘贴图片", noImageInClipboard: "剪贴板里没有图片",
     strip: "图片",
     secSubject: "主体", cutBtn: "抠出主体", erase: "擦除", restore: "恢复",
@@ -25,7 +25,7 @@ const I18N = {
     helpBody: `<li><b>选照片</b>拖进来，或点「选择照片」。</li>
       <li><b>抠出主体</b>点「抠出主体」，AI 会自动抠出画面主体。不准的地方用笔刷修：<em>擦除</em>让涂到的分隔线消失，<em>恢复</em>把线画回来（包括被主体盖住的部分）。再点一次工具即可退出。</li>
       <li><b>调效果</b><em>底色</em>要和你 X 的显示模式一致：深色模式选黑，浅色模式选白。<em>份数</em>是把照片切成几份，最多 20。</li>
-      <li><b>下载</b>点「下载」，选一个位置，会新建一个文件夹，里面是按顺序编号的图片（01、02……），照编号顺序发到 X 即可。不支持写文件夹的浏览器会逐张下载。</li>`,
+      <li><b>下载</b>点「打包下载」得到一个 ZIP（解压后是按顺序编号的图片 01、02……），或点「逐张下载」直接保存每张图。照编号顺序发到 X 即可。</li>`,
     helpUndo: "撤销 / 重做：", helpLocal: "图片只在本机处理，不会上传。",
     slicesVal: (n) => `${n} 份`,
     statusCount: (n, main) => `共 ${n} 张图` + (main ? "，其中 1 张主图破框" : ""),
@@ -52,8 +52,8 @@ const I18N = {
       { title: "Cut out the subject", text: "Click the highlighted “Cut out subject”. AI finds the subject in your photo." },
       { title: "Change the slices", text: "Click + or − to cut the photo into more or fewer images. The subject always stays in front of the gaps." },
       { title: "Pick a background", text: "Click “White” to see the white version. Choose the one that matches your X." },
-      { title: "Download", text: "When you’re happy, click “Download”, pick a location and you get numbered images (01, 02, …). Post them to X in that order." },
-    ], verified: "Verified", sampleShort: "Sample", sampleTip: "Load the sample photo", sampleConfirm: "Click again to replace the photo", savedFolder: (n, d) => `Saved ${n} numbered images to the folder “${d}”`, savedDownloads: (n) => `Downloaded ${n} numbered images (01, 02, …)`, removePhoto: "Remove photo", removed: "Photo removed. “Resume last project” can bring it back.", postTime: "1h", postText: "Testing a new feature. How does this look?", peek: "Hold to compare", keysTitle: "Shortcuts: ", resume: "Resume last project", resumed: "Last project restored", mask: "Mask", reset: "Reset", resetTip: "Back to the initial state (undoable)", resetDone: "Reset. Use Undo to bring it back.",
+      { title: "Download ZIP", text: "When you’re happy, click “Download ZIP”. Unzip it to get numbered images (01, 02, …) and post them to X in that order." },
+    ], verified: "Verified", sampleShort: "Sample", sampleTip: "Load the sample photo", sampleConfirm: "Click again to replace the photo", downloadFiles: "One by one", downloadZip: "Download ZIP", savedZip: (n, f) => `Packed ${n} ${n === 1 ? "image" : "images"}: ${f}`, savedDownloads: (n) => `Downloaded ${n} numbered ${n === 1 ? "image" : "images"} (01, 02, …)`, removePhoto: "Remove photo", removed: "Photo removed. “Resume last project” can bring it back.", postTime: "1h", postText: "Testing a new feature. How does this look?", peek: "Hold to compare", keysTitle: "Shortcuts: ", resume: "Resume last project", resumed: "Last project restored", mask: "Mask", reset: "Reset", resetTip: "Back to the initial state (undoable)", resetDone: "Reset. Use Undo to bring it back.",
     emptyTitle: "Drop a photo here", emptyHint: "Make X multi-image posts where the subject breaks the frame", pick: "Choose photo", sample: "Try a sample", pasteHint: `or just press ${PASTE_KEY} to paste an image`, pasted: "Image pasted", noImageInClipboard: "No image in the clipboard",
     strip: "Images",
     secSubject: "Subject", cutBtn: "Cut out subject", erase: "Erase", restore: "Restore",
@@ -64,7 +64,7 @@ const I18N = {
     helpBody: `<li><b>Choose a photo</b>Drag one in, click “Choose photo”, or just press ${PASTE_KEY} to paste.</li>
       <li><b>Cut out the subject</b>Click “Cut out subject” and AI finds the main subject. Fix misses with the brush: <em>Erase</em> removes parts wrongly included, <em>Restore</em> adds back parts that were missed (the cutout area shows while you edit). A gap line hidden behind the subject joins the images beside it into one main image; erase the subject off a line and, once the line is whole, the images split. Click the tool again to exit.</li>
       <li><b>Style it</b><em>Background</em> should match how X looks for you: Black for dark mode, White for light mode. <em>Slices</em> is how many parts the photo is cut into, up to 20.</li>
-      <li><b>Download</b>Click “Download” and pick a location. A new folder is created with numbered images (01, 02, …); post them to X in that order. Browsers that can’t write folders download the images one by one.</li>`,
+      <li><b>Download</b>Click “Download ZIP” for one archive (numbered images 01, 02, … inside), or “One by one” to save each image. Post them to X in that order.</li>`,
     helpUndo: "Undo / Redo: ", helpLocal: "Photos are processed on your device and never uploaded.",
     slicesVal: (n) => `${n} ${n === 1 ? "slice" : "slices"}`,
     statusCount: (n, main) => `${n} ${n === 1 ? "image" : "images"}` + (main ? " · 1 breaks the frame" : ""),

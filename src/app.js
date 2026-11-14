@@ -1443,58 +1443,84 @@ async function canvasToBlobBytes(c, type = "image/png", quality = 0.92) {
 // Download Button Packaging:
 // 1. "只有做了伪 3D 效果的页面是一张，其他都要单独生成切片"
 // 2. "要么透 要么不透" -> Alpha 严格二值化
-document.getElementById("btnDownload").onclick = async () => {
-  if (!state.compositeCanvas) return;
-  // 能直接写文件夹的浏览器（Chrome / Edge）：先选位置（必须在点击手势里调用），再在里面新建文件夹
-  let dirHandle = null;
-  if (window.showDirectoryPicker) {
-    try {
-      const parent = await window.showDirectoryPicker({ mode: "readwrite" });
-      const d = new Date(), p = (n) => String(n).padStart(2, "0");
-      const stamp = `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
-      dirHandle = await parent.getDirectoryHandle(`PopoutX-${stamp}`, { create: true });
-    } catch (e) {
-      if (e && e.name === "AbortError") return;   // 用户取消
-      dirHandle = null;                            // 其它错误：退回逐张下载
-    }
+// ---- ZIP（仅存储，不压缩：PNG 本来就是压缩过的）----
+const _CRC_TABLE = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+function crc32(bytes) { let c = 0xffffffff; for (let i = 0; i < bytes.length; i++) c = _CRC_TABLE[(c ^ bytes[i]) & 0xff] ^ (c >>> 8); return (c ^ 0xffffffff) >>> 0; }
+function makeZip(files) {
+  const enc = new TextEncoder(), now = new Date();
+  const dosTime = (now.getHours() << 11) | (now.getMinutes() << 5) | (now.getSeconds() >> 1);
+  const dosDate = ((now.getFullYear() - 1980) << 9) | ((now.getMonth() + 1) << 5) | now.getDate();
+  const locals = [], centrals = [];
+  let offset = 0;
+  for (const f of files) {
+    const name = enc.encode(f.name), crc = crc32(f.data), size = f.data.length;
+    const lh = new DataView(new ArrayBuffer(30));
+    lh.setUint32(0, 0x04034b50, true); lh.setUint16(4, 20, true); lh.setUint16(6, 0x0800, true); lh.setUint16(8, 0, true);
+    lh.setUint16(10, dosTime, true); lh.setUint16(12, dosDate, true); lh.setUint32(14, crc, true);
+    lh.setUint32(18, size, true); lh.setUint32(22, size, true); lh.setUint16(26, name.length, true); lh.setUint16(28, 0, true);
+    locals.push(new Uint8Array(lh.buffer), name, f.data);
+    const ch = new DataView(new ArrayBuffer(46));
+    ch.setUint32(0, 0x02014b50, true); ch.setUint16(4, 20, true); ch.setUint16(6, 20, true); ch.setUint16(8, 0x0800, true); ch.setUint16(10, 0, true);
+    ch.setUint16(12, dosTime, true); ch.setUint16(14, dosDate, true); ch.setUint32(16, crc, true);
+    ch.setUint32(20, size, true); ch.setUint32(24, size, true); ch.setUint16(28, name.length, true);
+    ch.setUint32(42, offset, true);
+    centrals.push(new Uint8Array(ch.buffer), name);
+    offset += 30 + name.length + size;
   }
+  const cdSize = centrals.reduce((n, p) => n + p.length, 0);
+  const end = new DataView(new ArrayBuffer(22));
+  end.setUint32(0, 0x06054b50, true); end.setUint16(8, files.length, true); end.setUint16(10, files.length, true);
+  end.setUint32(12, cdSize, true); end.setUint32(16, offset, true);
+  return new Blob([...locals, ...centrals, new Uint8Array(end.buffer)], { type: "application/zip" });
+}
+
+// mode: "zip" 打包成一个 ZIP；"files" 逐张下载。两种方式都不需要选文件夹，所有浏览器都能用。
+async function exportImages(mode) {
+  if (!state.compositeCanvas) return;
   statusDot.className = "status-dot busy";
   statusText.textContent = tr("packing");
-
   const w = state.source.width;
   const h = state.source.height;
   const layout = exportLayout(w);
+  const d = new Date(), p = (n) => String(n).padStart(2, "0");
+  const stamp = `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
+  const save = (blob, name) => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+  };
 
   // 只导出图片：按发帖顺序编号 01.png、02.png……（主图和普通切片混排在各自的位置上）
+  const files = [];
   for (let i = 0; i < layout.length; i++) {
     const it = layout[i];
     const sw = it.x1 - it.x0;
-    const name = `${String(i + 1).padStart(2, "0")}.png`;
     const c = document.createElement("canvas");
     c.width = sw;
     c.height = h;
     // 主图：所见即所得（框内的竖槽 + 出画主体）；普通切片：原图原宽，无圆角、无黑边
     c.getContext("2d").drawImage(it.kind === "3d" ? state.compositeCanvas : state.source, it.x0, 0, sw, h, 0, 0, sw, h);
-    const bytes = await canvasToBlobBytes(c, "image/png");
-    if (dirHandle) {
-      const fh = await dirHandle.getFileHandle(name, { create: true });
-      const wr = await fh.createWritable();
-      await wr.write(bytes);
-      await wr.close();
-    } else {
-      const url = URL.createObjectURL(new Blob([bytes], { type: "image/png" }));
-      const a = document.createElement("a");
-      a.href = url; a.download = name;
-      document.body.appendChild(a); a.click(); a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 4000);
-      await new Promise((r) => setTimeout(r, 350));   // 间隔一下，避免浏览器拦截连续下载
-    }
+    files.push({ name: `${String(i + 1).padStart(2, "0")}.png`, data: await canvasToBlobBytes(c, "image/png") });
   }
 
+  if (mode === "zip") {
+    const zipName = `PopoutX-${stamp}.zip`;
+    save(makeZip(files), zipName);
+    toast(() => tr("savedZip", files.length, zipName), 4200);
+  } else {
+    for (const f of files) {
+      save(new Blob([f.data], { type: "image/png" }), f.name);
+      await new Promise((r) => setTimeout(r, 350));   // 间隔一下，避免浏览器拦截连续下载
+    }
+    toast(() => tr("savedDownloads", files.length), 4200);
+  }
   statusDot.className = "status-dot";
   statusText.textContent = tr("downloaded", layout.length);
-  toast(() => (dirHandle ? tr("savedFolder", layout.length, dirHandle.name) : tr("savedDownloads", layout.length)), 4200);
-};
+}
+document.getElementById("btnDownload").onclick = () => exportImages("zip");
+document.getElementById("btnDownloadFiles").onclick = () => { flowFlags.exported = true; exportImages("files"); setTimeout(updateFlow, 800); };
 
 
 
@@ -1533,6 +1559,7 @@ function updateFlow() {
     p.classList.toggle("current", k === cur && !done[k]);
   });
   document.getElementById("btnReset").disabled = !hasImg;
+  document.getElementById("btnDownloadFiles").disabled = document.getElementById("btnDownload").disabled;
   const card = document.getElementById("tweetCard");
   card.classList.toggle("theme-light", state.slotTheme === "white");
   card.classList.toggle("theme-dark", state.slotTheme !== "white");

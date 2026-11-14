@@ -180,7 +180,10 @@
 
     <div class="panel-section" data-step="export">
       <div class="section-title"><span><b class="step-badge">4</b><span data-i18n="stepExport">导出</span></span></div>
-      <button type="button" class="primary wide-btn" id="btnDownload" disabled><svg class="icon"><use href="#i-download"/></svg><span data-i18n="download">下载</span></button>
+      <div class="export-actions">
+        <button type="button" class="wide-btn" id="btnDownloadFiles" disabled><span data-i18n="downloadFiles">逐张下载</span></button>
+        <button type="button" class="primary wide-btn" id="btnDownload" disabled><span data-i18n="downloadZip">打包下载</span></button>
+      </div>
     </div>
   </aside>
 </div>
