@@ -40,6 +40,7 @@ const state = {
   focalSpan: 10,        // 3D 主图占几列宽 (= 整图列数时为"全图合成")
   lineKeepCanvas: null, // 手工擦掉线段的区域 (白=不要线)
   hasRegion: false,     // 有主体时才存在 3D 图
+  regions: [],          // 所有主图的范围 [{l, r}]（占整图宽度的比例）
   regionL: 0, regionR: 1, // 3D 图范围 (自动, 占整图宽度的比例)
   subjectBox: null,
   selectedSlot: -1,     // 当前选中的分隔线
@@ -239,20 +240,23 @@ function limitMainWidth(merged, w, h) {
   let start = 0;
   for (let k = 0; k < state.centers.length; k++) if (!merged.has(k)) { groups.push([start, k]); start = k + 1; }
   groups.push([start, n - 1]);
-  let g = null, gSum = 0;
-  for (const gr of groups) { let t = 0; for (let i = gr[0]; i <= gr[1]; i++) t += colSum(i); if (t > gSum) { gSum = t; g = gr; } }
-  if (!g || g[0] === g[1] || edges[g[1] + 1] - edges[g[0]] <= budget) return;
-  let best = null, bestSum = -1;
-  for (let i = g[0]; i <= g[1]; i++) {
-    let t = 0;
-    for (let j = i; j <= g[1]; j++) {
-      if (edges[j + 1] - edges[i] > budget) break;
-      t += colSum(j);
-      if (t > bestSum) { bestSum = t; best = [i, j]; }
+  for (const g of groups) {                                      // 每一组主图都限制宽度
+    if (g[0] === g[1] || edges[g[1] + 1] - edges[g[0]] <= budget) continue;
+    let gSum = 0;
+    for (let i = g[0]; i <= g[1]; i++) gSum += colSum(i);
+    if (gSum < 20) continue;                                     // 没盖着主体（只是被擦掉合并的）不管
+    let best = null, bestSum = -1;
+    for (let i = g[0]; i <= g[1]; i++) {
+      let t = 0;
+      for (let j = i; j <= g[1]; j++) {
+        if (edges[j + 1] - edges[i] > budget) break;
+        t += colSum(j);
+        if (t > bestSum) { bestSum = t; best = [i, j]; }
+      }
     }
+    for (let k = g[0]; k < g[1]; k++) merged.delete(k);          // 先全部恢复成切口
+    if (best) for (let k = best[0]; k < best[1]; k++) merged.add(k);   // 再只把窗口内的缝并起来
   }
-  for (let k = g[0]; k < g[1]; k++) merged.delete(k);          // 先全部恢复成切口
-  if (best) for (let k = best[0]; k < best[1]; k++) merged.add(k);   // 再只把窗口内的缝并起来
 }
 function sortedCuts(totalWidth) {
   const xs = effCenters().map((c) => Math.round(c * totalWidth)).filter((x) => x > 0 && x < totalWidth).sort((a, b) => a - b);
@@ -269,47 +273,36 @@ function cutFracs() {
   return [0, ...xs, 1];
 }
 function autoRegion() {
-  // 主图 = 被「不完整的缝」连在一起的那一组列里，主体最多的一组。补完整的缝会把组拆开，
-  // 主体只占一小角的那一边就变回普通切片（不依赖抠图边界是否精准）。
+  // 主图 = 被「不完整的缝」连在一起、且盖着主体的每一组列（可以有多张）。
+  // 补完整的缝会把一组拆成两组，各自成为独立的主图；只有一列、或没盖着主体的组就是普通切片。
   const cols = state.subjectCols;
+  state.regions = [];
   if (!state.subjectBox || !cols) { state.hasRegion = false; return; }
   const w = cols.length;
   const cf = cutFracs();
-  let best = -1, bestSum = 0;
   for (let i = 0; i < cf.length - 1; i++) {
+    if (!state.centers.some((c) => c > cf[i] + 2e-4 && c < cf[i + 1] - 2e-4)) continue;   // 只有一列：没有槽
     const a = Math.round(cf[i] * w), b = Math.round(cf[i + 1] * w);
-    let s = 0;
-    for (let x = a; x < b; x++) if (cols[x] >= 3) s += cols[x];
-    if (s > bestSum) { bestSum = s; best = i; }
+    let sum = 0;
+    for (let x = a; x < b; x++) if (cols[x] >= 3) sum += cols[x];
+    if (sum >= 20) state.regions.push({ l: cf[i], r: cf[i + 1], sum });
   }
-  if (best < 0 || bestSum < 20) { state.hasRegion = false; return; }
-  state.hasRegion = true;
-  state.regionL = cf[best];
-  state.regionR = cf[best + 1];
+  state.hasRegion = state.regions.length > 0;
+  if (state.hasRegion) {   // 兼容历史快照：记录主体最多的那张
+    const top = state.regions.reduce((m, r) => (r.sum > m.sum ? r : m));
+    state.regionL = top.l; state.regionR = top.r;
+  }
 }
 function normalizeRegion() { autoRegion(); }
-function isInner(c) { return state.hasRegion && c > state.regionL + 2e-4 && c < state.regionR - 2e-4; }
-function regionPieces() {
-  if (!state.hasRegion) return 0;
-  return cutFracs().filter((c) => c >= state.regionL - 2e-4 && c <= state.regionR + 2e-4).length - 1;
-}
-function imageCount() { return (cutFracs().length - 1) - regionPieces() + (state.hasRegion ? 1 : 0); }
+function isInner(c) { return (state.regions || []).some((r) => c > r.l + 2e-4 && c < r.r - 2e-4); }
+function imageCount() { return cutFracs().length - 1; }
 function exportLayout(w) {
-  const cuts = cutFracs().map((f) => Math.round(f * w));
-  const L = Math.round(state.regionL * w), R = Math.round(state.regionR * w);
+  const cf = cutFracs();
+  const cuts = cf.map((f) => Math.round(f * w));
   const out = [];
-  let done = false;
-  if (!state.hasRegion) {
-    for (let i = 0; i < cuts.length - 1; i++) out.push({ x0: cuts[i], x1: cuts[i + 1], kind: "plain" });
-    return out;
-  }
   for (let i = 0; i < cuts.length - 1; i++) {
-    const x0 = cuts[i], x1 = cuts[i + 1];
-    if (x0 >= L && x1 <= R) {
-      if (!done) { out.push({ x0: L, x1: R, kind: "3d" }); done = true; }
-    } else {
-      out.push({ x0, x1, kind: "plain" });
-    }
+    const is3d = (state.regions || []).some((r) => Math.abs(r.l - cf[i]) < 2e-4 && Math.abs(r.r - cf[i + 1]) < 2e-4);
+    out.push({ x0: cuts[i], x1: cuts[i + 1], kind: is3d ? "3d" : "plain" });
   }
   return out;
 }
@@ -1894,7 +1887,7 @@ function removePhoto() {
   if (!state.source) return;
   clearTimeout(_saveTimer);
   state.source = null; state.maskCanvas = null; state.lineKeepCanvas = null;
-  state.subjectBox = null; state.subjectCols = null; state.hasRegion = false;
+  state.subjectBox = null; state.subjectCols = null; state.hasRegion = false; state.regions = [];
   state.compositeCanvas = null; state.compositeTransparentCanvas = null;
   state._thumbFor = null; state.fileName = "";
   document.querySelectorAll(".tool-btn").forEach((b) => b.classList.remove("active"));
