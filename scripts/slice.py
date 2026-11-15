@@ -76,6 +76,15 @@ def render_main_image(image: Image.Image, subject: np.ndarray, keep: np.ndarray,
     visible = (keep == 255) | (subject == 255)
     out = rgb.copy()
     out[~visible] = [255, 255, 255] if theme == "white" else [0, 0, 0]
+    # X 给每张图套一圈 1px 细灰边，主图里的立柱也补上同样的边（不盖主体）
+    bw = max(1, int(round(w * 0.0016)))
+    slot = (keep == 0).astype(np.int32)
+    pre = np.concatenate([np.zeros((h, 1), np.int32), np.cumsum(slot, axis=1)], axis=1)
+    lo = np.clip(np.arange(w) - bw, 0, w)
+    hi = np.clip(np.arange(w) + bw + 1, 0, w)
+    near_slot = (pre[:, hi] - pre[:, lo]) > 0
+    ring = near_slot & (slot == 0) & (subject != 255)
+    out[ring] = [207, 217, 222] if theme == "white" else [47, 51, 54]
     return Image.fromarray(out, "RGB")
 
 

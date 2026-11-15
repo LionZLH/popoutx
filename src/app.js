@@ -335,6 +335,25 @@ function slotMetrics(w) {
   return { gap, slotW, R };
 }
 
+// X 给每张图套了一圈 1px 细灰边（深色 #2f3336 / 浅色 #cfd9de）。主图里的立柱是我们自己画的，要补上同样的边，
+// 否则和旁边的普通切片风格不一致。边只画在槽的两侧（立柱一侧），不盖主体。
+function ringColor() { return state.slotTheme === "white" ? [207, 217, 222] : [47, 51, 54]; }
+function ringWidth(w) { return Math.max(1, Math.round(w * 0.0016)); }
+function computeRing(cov, w, h, bw) {
+  const ring = new Uint8Array(w * h);
+  const pre = new Int32Array(w + 1);
+  for (let y = 0; y < h; y++) {
+    const ro = y * w;
+    for (let x = 0; x < w; x++) pre[x + 1] = pre[x] + (cov[ro + x] >= 128 ? 1 : 0);
+    for (let x = 0; x < w; x++) {
+      if (cov[ro + x] >= 128) continue;
+      const a = Math.max(0, x - bw), b = Math.min(w - 1, x + bw);
+      if (pre[b + 1] - pre[a] > 0) ring[ro + x] = 1;
+    }
+  }
+  return ring;
+}
+
 // X-native slot geometry (rounded capsule gaps between images)
 // Exactly replicates two adjacent X image cards (border-radius: 8px, 1px border, native gap):
 function punchSlotTwitter(cCtx, cx, h, slotW, R) {
@@ -460,6 +479,10 @@ function render() {
     slotsBin[i] = cov > 0 ? ((forced && cov >= 128) ? 2 : 255) : 0;
   }
 
+  const ringOn = state.slotTheme !== "transparent";
+  const ring = ringOn ? computeRing(slotCov, w, h, ringWidth(w)) : null;
+  const ringRGB = ringColor();
+
   // --- Step 4: Master Themed Composite Assembly: STRICT "要么透(0) 要么不透(255)" (NO SHADOW!) ---
   const outCanvas = document.createElement("canvas");
   outCanvas.width = w;
@@ -548,10 +571,11 @@ function render() {
         tDst[px] = r; tDst[px + 1] = g; tDst[px + 2] = b; tDst[px + 3] = 255;
       }
     } else {
-      // 3. 背景区域：100% 纯实心，原画清晰！
-      dst[px] = r;
-      dst[px + 1] = g;
-      dst[px + 2] = b;
+      // 3. 背景区域：100% 纯实心，原画清晰！（紧贴槽的一圈是 X 风格的细灰边）
+      const onRing = ring && ring[i];
+      dst[px] = onRing ? ringRGB[0] : r;
+      dst[px + 1] = onRing ? ringRGB[1] : g;
+      dst[px + 2] = onRing ? ringRGB[2] : b;
       dst[px + 3] = 255;
 
       tDst[px] = r;
@@ -581,6 +605,12 @@ function render() {
     for (const c of outerC) punchSlotTwitter(octx, c * w, h, slotW, slotR);
     const od = octx.getImageData(0, 0, w, h).data;
     const vd = vctx.getImageData(0, 0, w, h);
+    let outerRing = null;
+    if (state.slotTheme !== "transparent") {
+      const oc2 = new Uint8Array(w * h);
+      for (let i = 0; i < oc2.length; i++) oc2[i] = od[i * 4 + 3];
+      outerRing = computeRing(oc2, w, h, ringWidth(w));
+    }
     for (let i = 0; i < maskBin.length; i++) {
       const cv = od[i * 4 + 3] / 255;
       const erasedHere = lkData && lkData[i * 4 + 3] > 100 && lkData[i * 4 + 1] > 200;
@@ -594,6 +624,9 @@ function render() {
           vd.data[k + 1] += (c - vd.data[k + 1]) * cv;
           vd.data[k + 2] += (c - vd.data[k + 2]) * cv;
         }
+      } else if (outerRing && outerRing[i] && !erasedHere) {
+        const k = i * 4;
+        vd.data[k] = ringRGB[0]; vd.data[k + 1] = ringRGB[1]; vd.data[k + 2] = ringRGB[2];
       }
     }
     vctx.putImageData(vd, 0, 0);
