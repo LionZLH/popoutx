@@ -221,7 +221,38 @@ function computeMerged(w, h) {
     }
     if (missing / h >= 0.02) merged.add(i);
   });
+  limitMainWidth(merged, w, h);
   state.mergedIdx = merged;
+}
+// X 的多图格子宽高比上限约 0.64（实测：网页版超出会被压扁，手机版超出会被裁掉两边）。
+// 主图（被主体盖住而连在一起的那组列）超过这个宽度时，只保留主体最多的一段窗口作为主图，
+// 窗口之外的缝恢复成普通切口，那部分主体和普通切片一样被切开。原图不裁剪、不补边。
+const X_MAX_ASPECT = 0.64;
+function limitMainWidth(merged, w, h) {
+  const cols = state.subjectCols;
+  if (!cols || !state.subjectBox || cols.length !== w) return;
+  const budget = Math.floor(X_MAX_ASPECT * h * 0.985);
+  const edges = [0, ...state.centers.map((c) => Math.min(w, Math.max(0, Math.round(c * w)))), w];
+  const n = edges.length - 1;
+  const colSum = (i) => { let t = 0; for (let x = edges[i]; x < edges[i + 1]; x++) if (cols[x] >= 3) t += cols[x]; return t; };
+  const groups = [];
+  let start = 0;
+  for (let k = 0; k < state.centers.length; k++) if (!merged.has(k)) { groups.push([start, k]); start = k + 1; }
+  groups.push([start, n - 1]);
+  let g = null, gSum = 0;
+  for (const gr of groups) { let t = 0; for (let i = gr[0]; i <= gr[1]; i++) t += colSum(i); if (t > gSum) { gSum = t; g = gr; } }
+  if (!g || g[0] === g[1] || edges[g[1] + 1] - edges[g[0]] <= budget) return;
+  let best = null, bestSum = -1;
+  for (let i = g[0]; i <= g[1]; i++) {
+    let t = 0;
+    for (let j = i; j <= g[1]; j++) {
+      if (edges[j + 1] - edges[i] > budget) break;
+      t += colSum(j);
+      if (t > bestSum) { bestSum = t; best = [i, j]; }
+    }
+  }
+  for (let k = g[0]; k < g[1]; k++) merged.delete(k);          // 先全部恢复成切口
+  if (best) for (let k = best[0]; k < best[1]; k++) merged.add(k);   // 再只把窗口内的缝并起来
 }
 function sortedCuts(totalWidth) {
   const xs = effCenters().map((c) => Math.round(c * totalWidth)).filter((x) => x > 0 && x < totalWidth).sort((a, b) => a - b);
@@ -661,11 +692,20 @@ function render() {
   }
 
   updateSlicesStrip(exportLayout(w));
-  updatePadHint();
+  updateWideHint(w, h);
   document.getElementById("btnDownload").disabled = false;
   statusText.textContent = tr("statusCount", imageCount(), state.hasRegion);
   if (typeof updateFlow === "function") updateFlow();
   statusDot.className = "status-dot";
+}
+
+// 任何一张图比 X 允许的更宽（份数太少时每张都很宽）就提醒：X 会把它压扁或裁掉两边
+function updateWideHint(w, h) {
+  const el = document.getElementById("wideHint");
+  if (!el) return;
+  const widest = Math.max(...exportLayout(w).map((it) => it.x1 - it.x0));
+  el.hidden = widest / h <= X_MAX_ASPECT;
+  if (!el.hidden) el.textContent = tr("wideHint", Math.ceil(w / (X_MAX_ASPECT * h * 0.985)));
 }
 
 // Slices Strip UI Update
@@ -1475,64 +1515,6 @@ function makeZip(files) {
   return new Blob([...locals, ...centrals, new Uint8Array(end.buffer)], { type: "application/zip" });
 }
 
-// 补边用「自然延伸」：取照片上下边缘每一列的颜色向外延伸，并平滑渐隐到底色（黑 / 白），接缝处没有硬边。
-function makePadded(srcCanvas, x0, sw, h, pd, themeC) {
-  const c = document.createElement("canvas");
-  c.width = sw; c.height = pd.H;
-  const g = c.getContext("2d");
-  g.drawImage(srcCanvas, x0, 0, sw, h, 0, pd.top, sw, h);
-  const band = Math.min(8, h);
-  const k = Math.max(2, Math.round(srcCanvas.width / 250));
-  const edgeColors = (y0) => {
-    const d = g.getImageData(0, pd.top + y0, sw, band).data;
-    const e = new Float32Array(sw * 3);
-    for (let x = 0; x < sw; x++) for (let r = 0; r < band; r++) for (let ch = 0; ch < 3; ch++) e[x * 3 + ch] += d[(r * sw + x) * 4 + ch] / band;
-    const out = new Float32Array(sw * 3);
-    for (let x = 0; x < sw; x++) {
-      let n = 0; const acc = [0, 0, 0];
-      for (let j = Math.max(0, x - k); j <= Math.min(sw - 1, x + k); j++) { n++; for (let ch = 0; ch < 3; ch++) acc[ch] += e[j * 3 + ch]; }
-      for (let ch = 0; ch < 3; ch++) out[x * 3 + ch] = acc[ch] / n;
-    }
-    return out;
-  };
-  const fill = (e, n, yStart, fromEdgeUp) => {
-    if (n <= 0) return;
-    const img = g.createImageData(sw, n);
-    for (let r = 0; r < n; r++) {
-      const dist = fromEdgeUp ? 1 - (r + 0.5) / n : (r + 0.5) / n;   // 0 在照片边缘，1 在最外侧
-      const t = dist * dist * (3 - 2 * dist);
-      for (let x = 0; x < sw; x++) {
-        const o = (r * sw + x) * 4;
-        for (let ch = 0; ch < 3; ch++) img.data[o + ch] = e[x * 3 + ch] * (1 - t) + themeC * t;
-        img.data[o + 3] = 255;
-      }
-    }
-    g.putImageData(img, 0, yStart);
-  };
-  fill(edgeColors(0), pd.top, 0, true);
-  fill(edgeColors(h - band), pd.H - pd.top - h, pd.top + h, false);
-  return c;
-}
-
-// X 的多图格子宽高比上限约 0.64（实测：网页版超出会被压扁，手机版超出会被裁掉两边）。
-// 主图比这更宽时，给所有图的上下统一补边，让主图落到上限以内，所有图保持同高、同比例。
-const X_MAX_ASPECT = 0.64, X_PAD_TARGET = 0.625;
-function exportPad(w, h) {
-  const m = exportLayout(w).find((it) => it.kind === "3d");
-  if (!m) return { H: h, top: 0, pad: 0 };
-  const mw = m.x1 - m.x0;
-  if (mw / h <= X_MAX_ASPECT) return { H: h, top: 0, pad: 0 };
-  const H = Math.ceil(mw / X_PAD_TARGET);
-  return { H, top: Math.floor((H - h) / 2), pad: H - h };
-}
-function updatePadHint() {
-  const el = document.getElementById("padHint");
-  if (!el) return;
-  const pd = state.source ? exportPad(state.source.width, state.source.height) : { pad: 0 };
-  el.hidden = !pd.pad;
-  if (pd.pad) el.textContent = tr("padHint", Math.round(pd.pad / 2));
-}
-
 // mode: "zip" 打包成一个 ZIP；"files" 逐张下载。两种方式都不需要选文件夹，所有浏览器都能用。
 async function exportImages(mode) {
   if (!state.compositeCanvas) return;
@@ -1541,7 +1523,6 @@ async function exportImages(mode) {
   const w = state.source.width;
   const h = state.source.height;
   const layout = exportLayout(w);
-  const pd = exportPad(w, h);
   const d = new Date(), p = (n) => String(n).padStart(2, "0");
   const stamp = `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
   const save = (blob, name) => {
@@ -1559,16 +1540,10 @@ async function exportImages(mode) {
     const sw = it.x1 - it.x0;
     const c = document.createElement("canvas");
     c.width = sw;
-    const srcC = it.kind === "3d" ? state.compositeCanvas : state.source;
-    let outC;
-    if (pd.pad) {
-      outC = makePadded(srcC, it.x0, sw, h, pd, state.slotTheme === "white" ? 255 : 0);   // 主图：所见即所得（框内的竖槽 + 出画主体）；普通切片：原图原宽
-    } else {
-      outC = document.createElement("canvas");
-      outC.width = sw; outC.height = h;
-      outC.getContext("2d").drawImage(srcC, it.x0, 0, sw, h, 0, 0, sw, h);
-    }
-    files.push({ name: `${String(i + 1).padStart(2, "0")}.png`, data: await canvasToBlobBytes(outC, "image/png") });
+    c.height = h;
+    // 主图：所见即所得（框内的竖槽 + 出画主体）；普通切片：原图原宽，无圆角、无黑边
+    c.getContext("2d").drawImage(it.kind === "3d" ? state.compositeCanvas : state.source, it.x0, 0, sw, h, 0, 0, sw, h);
+    files.push({ name: `${String(i + 1).padStart(2, "0")}.png`, data: await canvasToBlobBytes(c, "image/png") });
   }
 
   if (mode === "zip") {

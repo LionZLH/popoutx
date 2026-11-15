@@ -345,7 +345,7 @@ header { display: flex; justify-content: space-between; height: 56px; background
 .tour-skip { background: transparent; border-color: transparent; color: var(--ink-subtle); padding: 0 6px; min-height: 30px; font-size: 13px; }
 .tour-skip:hover:not(:disabled) { color: var(--ink); background: transparent; border-color: transparent; }
 .export-actions { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
-.pad-hint { margin: 10px 0 0; font-size: 12px; line-height: 1.55; color: var(--ink-muted); }
+.wide-hint { margin: 10px 0 0; font-size: 12px; line-height: 1.55; color: var(--ink-muted); }
 .export-actions .wide-btn { padding: 0 8px; min-width: 0; font-weight: 600; }
 .inspector-pane { overflow-x: hidden; }
 #toast { position: fixed; left: 50%; bottom: 150px; transform: translate(-50%, 8px); max-width: min(560px, 90vw); background: var(--bg-card); border: 1px solid var(--line-strong); color: var(--ink); padding: 10px 16px; border-radius: var(--radius-md); font-size: 13px; line-height: 1.5; box-shadow: 0 8px 24px rgba(0,0,0,0.45); opacity: 0; pointer-events: none; transition: opacity 0.25s var(--ease), transform 0.25s var(--ease); z-index: 3000; user-select: text; }

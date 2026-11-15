@@ -132,6 +132,23 @@ def main() -> int:
         hi = min(c for c in cuts if c >= box[1] - 1e-4)
         region = (lo, hi) if hi - lo > 1e-6 else None
 
+    # X 的格子宽高比上限约 0.64：主图更宽时，只保留主体最多的一段窗口，其余部分当普通切片
+    if region is not None:
+        budget = int(0.64 * h * 0.985)
+        idx = [i for i, c in enumerate(cuts) if region[0] - 1e-6 <= c <= region[1] + 1e-6]
+        if (cuts[idx[-1]] - cuts[idx[0]]) * w > budget and len(idx) > 2:
+            colsum = (subject == 255).sum(axis=0)
+            best, best_sum = None, -1
+            for a in range(len(idx) - 1):
+                tot = 0
+                for b in range(a + 1, len(idx)):
+                    if (cuts[idx[b]] - cuts[idx[a]]) * w > budget:
+                        break
+                    tot += int(colsum[int(round(cuts[idx[b - 1]] * w)):int(round(cuts[idx[b]] * w))].sum())
+                    if tot > best_sum:
+                        best_sum, best = tot, (cuts[idx[a]], cuts[idx[b]])
+            region = best if best and best[1] - best[0] > 1e-6 else None
+
     pieces = len(cuts) - 1
     merged = sum(1 for c in cuts if region and region[0] - 2e-4 <= c <= region[1] + 2e-4) - 1 if region else 0
     total = pieces - merged + (1 if region else 0)
@@ -148,46 +165,18 @@ def main() -> int:
     args.out.mkdir(parents=True, exist_ok=True)
     px = [int(round(f * w)) for f in cuts]
     L, R = (int(round(region[0] * w)), int(round(region[1] * w))) if region else (-1, -1)
-    # X 的格子宽高比上限约 0.64：主图更宽就给所有图上下补边（网页版同一规则）
-    pad_top, out_h = 0, h
-    if region and (R - L) / h > 0.64:
-        out_h = int(np.ceil((R - L) / 0.625))
-        pad_top = (out_h - h) // 2
-    theme_c = 255.0 if args.theme == "white" else 0.0
-    pad_bot = out_h - h - pad_top
-    smooth_k = max(2, int(round(w / 250)))
-
-    def edge_fade(rows: np.ndarray, n: int, is_top: bool) -> np.ndarray:
-        e = rows.mean(axis=0)                                   # per-column edge colour, (width, 3)
-        ker = np.ones(2 * smooth_k + 1) / (2 * smooth_k + 1)
-        e = np.stack([np.convolve(np.pad(e[:, c], (smooth_k, smooth_k), mode="edge"), ker, mode="valid") for c in range(3)], axis=1)
-        d = (np.arange(n) + 0.5) / n                            # rows listed top to bottom
-        if is_top:
-            d = 1 - d                                           # 0 at the photo edge, 1 outermost
-        t = (d * d * (3 - 2 * d))[:, None, None]
-        return e[None] * (1 - t) + theme_c * t
-
-    def put(piece: Image.Image) -> Image.Image:
-        """Extend the picture up/down from its edge colours and fade to the theme colour."""
-        if out_h == h:
-            return piece
-        a = np.asarray(piece.convert("RGB")).astype(np.float32)
-        top = edge_fade(a[:8], pad_top, True) if pad_top else a[:0]
-        bot = edge_fade(a[-8:], pad_bot, False) if pad_bot else a[:0]
-        return Image.fromarray(np.concatenate([top, a, bot], 0).clip(0, 255).astype(np.uint8))
-
     widths, n, done = [], 0, False
     for i in range(pieces):
         x0, x1 = px[i], px[i + 1]
         if region and x0 >= L and x1 <= R:
             if not done:
                 n += 1
-                put(main_img.crop((L, 0, R, h))).save(args.out / f"{n:02d}.png")     # 主图：所见即所得
+                main_img.crop((L, 0, R, h)).save(args.out / f"{n:02d}.png")     # 主图：所见即所得
                 widths.append(R - L)
                 done = True
         else:
             n += 1
-            put(img.crop((x0, 0, x1, h))).save(args.out / f"{n:02d}.png")            # 普通切片：原图原宽
+            img.crop((x0, 0, x1, h)).save(args.out / f"{n:02d}.png")            # 普通切片：原图原宽
             widths.append(x1 - x0)
 
     print(json.dumps({"out": str(args.out), "widths": widths, "images": len(widths)}, ensure_ascii=False))
