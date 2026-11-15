@@ -38,6 +38,12 @@ Shortcuts: `E` erase · `R` restore · `[` `]` brush size · hold `Space` to com
 - Autosave: your work is stored locally in the browser (IndexedDB); use “Resume last project” next time.
 - UI languages: English / 中文 (toggle at the top right; English is the default).
 
+## Limits of X (measured)
+
+- X shows every image in a cell at most **0.64 × as wide as it is tall**. A wider image is squashed on the web and cropped on mobile. So the main image is limited to that width: if the subject is wider, only the part that fits pops out and the rest of the subject is sliced like the other images. With too few slices each image can be too wide too; the page tells you to add slices.
+- X draws a thin grey ring around every image; the app draws the same ring around the pillars inside the main image so they look alike.
+- The preview is simulated from a reference post. Send a test post before the real one.
+
 > Why only Black / White: X flattens PNG transparency to a black or white background, so the gaps have to be solid colours.
 
 ## Host your own copy (GitHub Pages)
@@ -66,7 +72,7 @@ Everything still runs in the visitor's browser: photos are never uploaded, and `
 python3 scripts/slice.py photo.jpg -o out --images 10 --mask mask.png --theme dark
 ```
 
-It merges columns by the subject's extent only; it does not include the web app's per-gap editing.
+It merges columns by the subject's extent only (limited to X's 0.64 width/height cell limit); it does not include the web app's per-gap editing.
 
 ## Project layout
 
