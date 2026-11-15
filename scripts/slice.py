@@ -153,14 +153,28 @@ def main() -> int:
     if region and (R - L) / h > 0.64:
         out_h = int(np.ceil((R - L) / 0.625))
         pad_top = (out_h - h) // 2
-    fill = (255, 255, 255) if args.theme == "white" else (0, 0, 0)
+    theme_c = 255.0 if args.theme == "white" else 0.0
+    pad_bot = out_h - h - pad_top
+    smooth_k = max(2, int(round(w / 250)))
+
+    def edge_fade(rows: np.ndarray, n: int, is_top: bool) -> np.ndarray:
+        e = rows.mean(axis=0)                                   # per-column edge colour, (width, 3)
+        ker = np.ones(2 * smooth_k + 1) / (2 * smooth_k + 1)
+        e = np.stack([np.convolve(np.pad(e[:, c], (smooth_k, smooth_k), mode="edge"), ker, mode="valid") for c in range(3)], axis=1)
+        d = (np.arange(n) + 0.5) / n                            # rows listed top to bottom
+        if is_top:
+            d = 1 - d                                           # 0 at the photo edge, 1 outermost
+        t = (d * d * (3 - 2 * d))[:, None, None]
+        return e[None] * (1 - t) + theme_c * t
 
     def put(piece: Image.Image) -> Image.Image:
+        """Extend the picture up/down from its edge colours and fade to the theme colour."""
         if out_h == h:
             return piece
-        canvas = Image.new("RGB", (piece.width, out_h), fill)
-        canvas.paste(piece, (0, pad_top))
-        return canvas
+        a = np.asarray(piece.convert("RGB")).astype(np.float32)
+        top = edge_fade(a[:8], pad_top, True) if pad_top else a[:0]
+        bot = edge_fade(a[-8:], pad_bot, False) if pad_bot else a[:0]
+        return Image.fromarray(np.concatenate([top, a, bot], 0).clip(0, 255).astype(np.uint8))
 
     widths, n, done = [], 0, False
     for i in range(pieces):

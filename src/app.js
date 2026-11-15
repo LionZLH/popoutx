@@ -1475,6 +1475,45 @@ function makeZip(files) {
   return new Blob([...locals, ...centrals, new Uint8Array(end.buffer)], { type: "application/zip" });
 }
 
+// 补边用「自然延伸」：取照片上下边缘每一列的颜色向外延伸，并平滑渐隐到底色（黑 / 白），接缝处没有硬边。
+function makePadded(srcCanvas, x0, sw, h, pd, themeC) {
+  const c = document.createElement("canvas");
+  c.width = sw; c.height = pd.H;
+  const g = c.getContext("2d");
+  g.drawImage(srcCanvas, x0, 0, sw, h, 0, pd.top, sw, h);
+  const band = Math.min(8, h);
+  const k = Math.max(2, Math.round(srcCanvas.width / 250));
+  const edgeColors = (y0) => {
+    const d = g.getImageData(0, pd.top + y0, sw, band).data;
+    const e = new Float32Array(sw * 3);
+    for (let x = 0; x < sw; x++) for (let r = 0; r < band; r++) for (let ch = 0; ch < 3; ch++) e[x * 3 + ch] += d[(r * sw + x) * 4 + ch] / band;
+    const out = new Float32Array(sw * 3);
+    for (let x = 0; x < sw; x++) {
+      let n = 0; const acc = [0, 0, 0];
+      for (let j = Math.max(0, x - k); j <= Math.min(sw - 1, x + k); j++) { n++; for (let ch = 0; ch < 3; ch++) acc[ch] += e[j * 3 + ch]; }
+      for (let ch = 0; ch < 3; ch++) out[x * 3 + ch] = acc[ch] / n;
+    }
+    return out;
+  };
+  const fill = (e, n, yStart, fromEdgeUp) => {
+    if (n <= 0) return;
+    const img = g.createImageData(sw, n);
+    for (let r = 0; r < n; r++) {
+      const dist = fromEdgeUp ? 1 - (r + 0.5) / n : (r + 0.5) / n;   // 0 在照片边缘，1 在最外侧
+      const t = dist * dist * (3 - 2 * dist);
+      for (let x = 0; x < sw; x++) {
+        const o = (r * sw + x) * 4;
+        for (let ch = 0; ch < 3; ch++) img.data[o + ch] = e[x * 3 + ch] * (1 - t) + themeC * t;
+        img.data[o + 3] = 255;
+      }
+    }
+    g.putImageData(img, 0, yStart);
+  };
+  fill(edgeColors(0), pd.top, 0, true);
+  fill(edgeColors(h - band), pd.H - pd.top - h, pd.top + h, false);
+  return c;
+}
+
 // X 的多图格子宽高比上限约 0.64（实测：网页版超出会被压扁，手机版超出会被裁掉两边）。
 // 主图比这更宽时，给所有图的上下统一补边，让主图落到上限以内，所有图保持同高、同比例。
 const X_MAX_ASPECT = 0.64, X_PAD_TARGET = 0.625;
@@ -1503,7 +1542,6 @@ async function exportImages(mode) {
   const h = state.source.height;
   const layout = exportLayout(w);
   const pd = exportPad(w, h);
-  const padColor = state.slotTheme === "white" ? "#ffffff" : "#000000";
   const d = new Date(), p = (n) => String(n).padStart(2, "0");
   const stamp = `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
   const save = (blob, name) => {
@@ -1521,12 +1559,16 @@ async function exportImages(mode) {
     const sw = it.x1 - it.x0;
     const c = document.createElement("canvas");
     c.width = sw;
-    c.height = pd.H;
-    const cctx = c.getContext("2d");
-    if (pd.pad) { cctx.fillStyle = padColor; cctx.fillRect(0, 0, sw, pd.H); }
-    // 主图：所见即所得（框内的竖槽 + 出画主体）；普通切片：原图原宽，无圆角、无黑边
-    cctx.drawImage(it.kind === "3d" ? state.compositeCanvas : state.source, it.x0, 0, sw, h, 0, pd.top, sw, h);
-    files.push({ name: `${String(i + 1).padStart(2, "0")}.png`, data: await canvasToBlobBytes(c, "image/png") });
+    const srcC = it.kind === "3d" ? state.compositeCanvas : state.source;
+    let outC;
+    if (pd.pad) {
+      outC = makePadded(srcC, it.x0, sw, h, pd, state.slotTheme === "white" ? 255 : 0);   // 主图：所见即所得（框内的竖槽 + 出画主体）；普通切片：原图原宽
+    } else {
+      outC = document.createElement("canvas");
+      outC.width = sw; outC.height = h;
+      outC.getContext("2d").drawImage(srcC, it.x0, 0, sw, h, 0, 0, sw, h);
+    }
+    files.push({ name: `${String(i + 1).padStart(2, "0")}.png`, data: await canvasToBlobBytes(outC, "image/png") });
   }
 
   if (mode === "zip") {
