@@ -148,18 +148,32 @@ def main() -> int:
     args.out.mkdir(parents=True, exist_ok=True)
     px = [int(round(f * w)) for f in cuts]
     L, R = (int(round(region[0] * w)), int(round(region[1] * w))) if region else (-1, -1)
+    # X 的格子宽高比上限约 0.64：主图更宽就给所有图上下补边（网页版同一规则）
+    pad_top, out_h = 0, h
+    if region and (R - L) / h > 0.64:
+        out_h = int(np.ceil((R - L) / 0.625))
+        pad_top = (out_h - h) // 2
+    fill = (255, 255, 255) if args.theme == "white" else (0, 0, 0)
+
+    def put(piece: Image.Image) -> Image.Image:
+        if out_h == h:
+            return piece
+        canvas = Image.new("RGB", (piece.width, out_h), fill)
+        canvas.paste(piece, (0, pad_top))
+        return canvas
+
     widths, n, done = [], 0, False
     for i in range(pieces):
         x0, x1 = px[i], px[i + 1]
         if region and x0 >= L and x1 <= R:
             if not done:
                 n += 1
-                main_img.crop((L, 0, R, h)).save(args.out / f"{n:02d}.png")     # 主图：所见即所得
+                put(main_img.crop((L, 0, R, h))).save(args.out / f"{n:02d}.png")     # 主图：所见即所得
                 widths.append(R - L)
                 done = True
         else:
             n += 1
-            img.crop((x0, 0, x1, h)).save(args.out / f"{n:02d}.png")            # 普通切片：原图原宽
+            put(img.crop((x0, 0, x1, h))).save(args.out / f"{n:02d}.png")            # 普通切片：原图原宽
             widths.append(x1 - x0)
 
     print(json.dumps({"out": str(args.out), "widths": widths, "images": len(widths)}, ensure_ascii=False))
