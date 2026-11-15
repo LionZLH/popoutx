@@ -68,24 +68,29 @@ def build_lines_mask(w: int, h: int, centers: list[float], slot_w: int, corner: 
     return np.where(arr > 127, 255, 0).astype(np.uint8)
 
 
-def render_main_image(image: Image.Image, subject: np.ndarray, keep: np.ndarray, theme: str) -> Image.Image:
-    """A pixel stays visible if it is in a pillar or belongs to the subject; otherwise it becomes the
-    slot colour (black or white). The result is fully opaque (X flattens transparency anyway)."""
-    rgb = np.asarray(ImageOps.exif_transpose(image).convert("RGB"))
+def keep_coverage(w: int, h: int, centers: list[float], slot_w: float, corner: int, ss: int = 4) -> np.ndarray:
+    """Anti-aliased pillar coverage 0..1 (drawn at ss x resolution, then averaged down)."""
+    big = build_lines_mask(w * ss, h * ss, centers, int(round(slot_w * ss)), corner * ss)
+    small = Image.fromarray(big).resize((w, h), Image.Resampling.BOX)
+    return np.asarray(small).astype(np.float32) / 255.0
+
+
+def render_main_image(image: Image.Image, subject: np.ndarray, centers: list[float], slot_w: int, corner: int, theme: str) -> Image.Image:
+    """Pillars show the photo, slots are the theme colour (black / white), and X's thin grey ring sits on the
+    pillar side of each slot. The subject is drawn in front of everything. Fully opaque (X flattens
+    transparency anyway); every edge is anti-aliased."""
+    rgb = np.asarray(ImageOps.exif_transpose(image).convert("RGB")).astype(np.float32)
     h, w = rgb.shape[:2]
-    visible = (keep == 255) | (subject == 255)
-    out = rgb.copy()
-    out[~visible] = [255, 255, 255] if theme == "white" else [0, 0, 0]
-    # X 给每张图套一圈 1px 细灰边，主图里的立柱也补上同样的边（不盖主体）
-    bw = max(1, int(round(w * 0.0016)))
-    slot = (keep == 0).astype(np.int32)
-    pre = np.concatenate([np.zeros((h, 1), np.int32), np.cumsum(slot, axis=1)], axis=1)
-    lo = np.clip(np.arange(w) - bw, 0, w)
-    hi = np.clip(np.arange(w) + bw + 1, 0, w)
-    near_slot = (pre[:, hi] - pre[:, lo]) > 0
-    ring = near_slot & (slot == 0) & (subject != 255)
-    out[ring] = [207, 217, 222] if theme == "white" else [47, 51, 54]
-    return Image.fromarray(out, "RGB")
+    ring_w = max(1.0, w * 0.0011)
+    keep = keep_coverage(w, h, centers, slot_w, corner)
+    keep_wide = keep_coverage(w, h, centers, slot_w + 2 * ring_w, corner)
+    ring = np.clip(keep - keep_wide, 0, 1)[..., None]
+    slot_c = np.array([255, 255, 255] if theme == "white" else [0, 0, 0], np.float32)
+    ring_c = np.array([207, 217, 222] if theme == "white" else [47, 51, 54], np.float32)
+    k = keep[..., None]
+    out = rgb * keep_wide[..., None] + ring_c * ring + slot_c * (1 - k)
+    out[subject == 255] = rgb[subject == 255]
+    return Image.fromarray(np.clip(out, 0, 255).astype(np.uint8), "RGB")
 
 
 def main() -> int:
@@ -168,8 +173,7 @@ def main() -> int:
     inner = [c for c in cuts[1:-1] if region and region[0] + 2e-4 < c < region[1] - 2e-4]
     slot_w = max(4, int(round(w * 0.007)))      # 槽宽 = X 图缝宽（实测约 0.70% 图宽）
     corner = max(2, int(round(w * 0.0062)))   # X 圆角实测 8px / 1282px
-    keep = build_lines_mask(w, h, inner, slot_w, corner)
-    main_img = render_main_image(img, subject, keep, args.theme)
+    main_img = render_main_image(img, subject, inner, slot_w, corner, args.theme)
 
     args.out.mkdir(parents=True, exist_ok=True)
     px = [int(round(f * w)) for f in cuts]

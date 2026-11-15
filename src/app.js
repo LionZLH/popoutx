@@ -338,21 +338,7 @@ function slotMetrics(w) {
 // X 给每张图套了一圈 1px 细灰边（深色 #2f3336 / 浅色 #cfd9de）。主图里的立柱是我们自己画的，要补上同样的边，
 // 否则和旁边的普通切片风格不一致。边只画在槽的两侧（立柱一侧），不盖主体。
 function ringColor() { return state.slotTheme === "white" ? [207, 217, 222] : [47, 51, 54]; }
-function ringWidth(w) { return Math.max(1, Math.round(w * 0.0016)); }
-function computeRing(cov, w, h, bw) {
-  const ring = new Uint8Array(w * h);
-  const pre = new Int32Array(w + 1);
-  for (let y = 0; y < h; y++) {
-    const ro = y * w;
-    for (let x = 0; x < w; x++) pre[x + 1] = pre[x] + (cov[ro + x] >= 128 ? 1 : 0);
-    for (let x = 0; x < w; x++) {
-      if (cov[ro + x] >= 128) continue;
-      const a = Math.max(0, x - bw), b = Math.min(w - 1, x + bw);
-      if (pre[b + 1] - pre[a] > 0) ring[ro + x] = 1;
-    }
-  }
-  return ring;
-}
+function ringWidth(w) { return Math.max(1, w * 0.0011); }   // 可以是小数：用矢量曲线抗锯齿绘制，边缘平滑
 
 // X-native slot geometry (rounded capsule gaps between images)
 // Exactly replicates two adjacent X image cards (border-radius: 8px, 1px border, native gap):
@@ -480,8 +466,19 @@ function render() {
   }
 
   const ringOn = state.slotTheme !== "transparent";
-  const ring = ringOn ? computeRing(slotCov, w, h, ringWidth(w)) : null;
   const ringRGB = ringColor();
+  let ringWide = null;   // 把槽向两侧加宽 ringWidth 后的覆盖率；与槽覆盖率之差就是细灰边（同样抗锯齿）
+  if (ringOn) {
+    const rc = document.createElement("canvas");
+    rc.width = w; rc.height = h;
+    const rg = rc.getContext("2d");
+    rg.fillStyle = "#fff";
+    for (const centerRatio of state.centers.filter(isInner)) punchSlotTwitter(rg, centerRatio * w, h, slotW + 2 * ringWidth(w), slotR);
+    const rd = rg.getImageData(0, 0, w, h).data;
+    ringWide = new Uint8Array(w * h);
+    for (let i = 0; i < ringWide.length; i++) ringWide[i] = lkData && lkData[i * 4 + 3] > 100 && lkData[i * 4 + 1] > 200 ? 0 : rd[i * 4 + 3];
+  }
+  const ringAlpha = (i, cov) => (ringWide ? Math.min(1 - cov, Math.max(0, ringWide[i] - slotCov[i]) / 255) : 0);
 
   // --- Step 4: Master Themed Composite Assembly: STRICT "要么透(0) 要么不透(255)" (NO SHADOW!) ---
   const outCanvas = document.createElement("canvas");
@@ -557,7 +554,9 @@ function render() {
         else { dst[px] = r; dst[px + 1] = g; dst[px + 2] = b; dst[px + 3] = 255; }
       } else {
         const c = state.slotTheme === "white" ? 255 : 0;
+        const ra = ringAlpha(i, cov);
         let o0 = r + (c - r) * cov, o1 = g + (c - g) * cov, o2 = b + (c - b) * cov;
+        if (ra > 0) { o0 += (ringRGB[0] - r) * ra; o1 += (ringRGB[1] - g) * ra; o2 += (ringRGB[2] - b) * ra; }
         const sc = (feather && slotsBin[i] !== 2) ? subCov[i] : 0;
         if (sc > 0) { o0 = r * sc + o0 * (1 - sc); o1 = g * sc + o1 * (1 - sc); o2 = b * sc + o2 * (1 - sc); }
         dst[px] = o0; dst[px + 1] = o1; dst[px + 2] = o2;
@@ -572,10 +571,10 @@ function render() {
       }
     } else {
       // 3. 背景区域：100% 纯实心，原画清晰！（紧贴槽的一圈是 X 风格的细灰边）
-      const onRing = ring && ring[i];
-      dst[px] = onRing ? ringRGB[0] : r;
-      dst[px + 1] = onRing ? ringRGB[1] : g;
-      dst[px + 2] = onRing ? ringRGB[2] : b;
+      const ra = ringAlpha(i, 0);
+      dst[px] = r + (ringRGB[0] - r) * ra;
+      dst[px + 1] = g + (ringRGB[1] - g) * ra;
+      dst[px + 2] = b + (ringRGB[2] - b) * ra;
       dst[px + 3] = 255;
 
       tDst[px] = r;
@@ -605,11 +604,16 @@ function render() {
     for (const c of outerC) punchSlotTwitter(octx, c * w, h, slotW, slotR);
     const od = octx.getImageData(0, 0, w, h).data;
     const vd = vctx.getImageData(0, 0, w, h);
-    let outerRing = null;
+    let outerWide = null;
     if (state.slotTheme !== "transparent") {
-      const oc2 = new Uint8Array(w * h);
-      for (let i = 0; i < oc2.length; i++) oc2[i] = od[i * 4 + 3];
-      outerRing = computeRing(oc2, w, h, ringWidth(w));
+      const wc = document.createElement("canvas");
+      wc.width = w; wc.height = h;
+      const wg = wc.getContext("2d");
+      wg.fillStyle = "#fff";
+      for (const c of outerC) punchSlotTwitter(wg, c * w, h, slotW + 2 * ringWidth(w), slotR);
+      const wd = wg.getImageData(0, 0, w, h).data;
+      outerWide = new Uint8Array(w * h);
+      for (let i = 0; i < outerWide.length; i++) outerWide[i] = wd[i * 4 + 3];
     }
     for (let i = 0; i < maskBin.length; i++) {
       const cv = od[i * 4 + 3] / 255;
@@ -624,9 +628,15 @@ function render() {
           vd.data[k + 1] += (c - vd.data[k + 1]) * cv;
           vd.data[k + 2] += (c - vd.data[k + 2]) * cv;
         }
-      } else if (outerRing && outerRing[i] && !erasedHere) {
-        const k = i * 4;
-        vd.data[k] = ringRGB[0]; vd.data[k + 1] = ringRGB[1]; vd.data[k + 2] = ringRGB[2];
+      }
+      if (outerWide && !erasedHere) {
+        const ra = Math.min(1 - cv, Math.max(0, outerWide[i] - od[i * 4 + 3]) / 255);
+        if (ra > 0) {
+          const k = i * 4;
+          vd.data[k] += (ringRGB[0] - vd.data[k]) * ra;
+          vd.data[k + 1] += (ringRGB[1] - vd.data[k + 1]) * ra;
+          vd.data[k + 2] += (ringRGB[2] - vd.data[k + 2]) * ra;
+        }
       }
     }
     vctx.putImageData(vd, 0, 0);
