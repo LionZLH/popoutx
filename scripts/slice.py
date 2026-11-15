@@ -141,7 +141,7 @@ def main() -> int:
 
     inner = [c for c in cuts[1:-1] if region and region[0] + 2e-4 < c < region[1] - 2e-4]
     slot_w = max(4, int(round(w * 0.007)))      # 槽宽 = X 图缝宽（实测约 0.70% 图宽）
-    corner = max(8, int(round(w / 60)))
+    corner = max(2, int(round(w * 0.0062)))   # X 圆角实测 8px / 1282px
     keep = build_lines_mask(w, h, inner, slot_w, corner)
     main_img = render_main_image(img, subject, keep, args.theme)
 

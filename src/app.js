@@ -300,7 +300,7 @@ function slotMetrics(w) {
   const cuts = [0, ...sortedCuts(w), w];
   let minPillar = w;
   for (let i = 1; i < cuts.length; i++) minPillar = Math.min(minPillar, cuts[i] - cuts[i - 1] - slotW);
-  const R = Math.max(2, Math.min(Math.round(w / 60), Math.floor(Math.max(4, minPillar) / 2)));
+  const R = Math.max(2, Math.min(Math.round(w * 0.0062), Math.floor(Math.max(4, minPillar) / 2)));
   return { gap, slotW, R };
 }
 
