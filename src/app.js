@@ -661,6 +661,7 @@ function render() {
   }
 
   updateSlicesStrip(exportLayout(w));
+  updatePadHint();
   document.getElementById("btnDownload").disabled = false;
   statusText.textContent = tr("statusCount", imageCount(), state.hasRegion);
   if (typeof updateFlow === "function") updateFlow();
@@ -1474,6 +1475,25 @@ function makeZip(files) {
   return new Blob([...locals, ...centrals, new Uint8Array(end.buffer)], { type: "application/zip" });
 }
 
+// X 的多图格子宽高比上限约 0.64（实测：网页版超出会被压扁，手机版超出会被裁掉两边）。
+// 主图比这更宽时，给所有图的上下统一补边，让主图落到上限以内，所有图保持同高、同比例。
+const X_MAX_ASPECT = 0.64, X_PAD_TARGET = 0.625;
+function exportPad(w, h) {
+  const m = exportLayout(w).find((it) => it.kind === "3d");
+  if (!m) return { H: h, top: 0, pad: 0 };
+  const mw = m.x1 - m.x0;
+  if (mw / h <= X_MAX_ASPECT) return { H: h, top: 0, pad: 0 };
+  const H = Math.ceil(mw / X_PAD_TARGET);
+  return { H, top: Math.floor((H - h) / 2), pad: H - h };
+}
+function updatePadHint() {
+  const el = document.getElementById("padHint");
+  if (!el) return;
+  const pd = state.source ? exportPad(state.source.width, state.source.height) : { pad: 0 };
+  el.hidden = !pd.pad;
+  if (pd.pad) el.textContent = tr("padHint", Math.round(pd.pad / 2));
+}
+
 // mode: "zip" 打包成一个 ZIP；"files" 逐张下载。两种方式都不需要选文件夹，所有浏览器都能用。
 async function exportImages(mode) {
   if (!state.compositeCanvas) return;
@@ -1482,6 +1502,8 @@ async function exportImages(mode) {
   const w = state.source.width;
   const h = state.source.height;
   const layout = exportLayout(w);
+  const pd = exportPad(w, h);
+  const padColor = state.slotTheme === "white" ? "#ffffff" : "#000000";
   const d = new Date(), p = (n) => String(n).padStart(2, "0");
   const stamp = `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
   const save = (blob, name) => {
@@ -1499,9 +1521,11 @@ async function exportImages(mode) {
     const sw = it.x1 - it.x0;
     const c = document.createElement("canvas");
     c.width = sw;
-    c.height = h;
+    c.height = pd.H;
+    const cctx = c.getContext("2d");
+    if (pd.pad) { cctx.fillStyle = padColor; cctx.fillRect(0, 0, sw, pd.H); }
     // 主图：所见即所得（框内的竖槽 + 出画主体）；普通切片：原图原宽，无圆角、无黑边
-    c.getContext("2d").drawImage(it.kind === "3d" ? state.compositeCanvas : state.source, it.x0, 0, sw, h, 0, 0, sw, h);
+    cctx.drawImage(it.kind === "3d" ? state.compositeCanvas : state.source, it.x0, 0, sw, h, 0, pd.top, sw, h);
     files.push({ name: `${String(i + 1).padStart(2, "0")}.png`, data: await canvasToBlobBytes(c, "image/png") });
   }
 
